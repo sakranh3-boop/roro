@@ -302,7 +302,8 @@ const CATS = [
   { id: 'housing', n: 'דיור', e: '🏠', k: 'f' }, { id: 'bills', n: 'חשבונות בית', e: '💡', k: 'f' },
   { id: 'comms', n: 'תקשורת', e: '📱', k: 'f' }, { id: 'insur', n: 'ביטוחים', e: '🛡️', k: 'f' },
   { id: 'car', n: 'רכב קבוע', e: '🚗', k: 'f' }, { id: 'edu', n: 'חינוך וצהרון', e: '🎒', k: 'f' },
-  { id: 'loan', n: 'הלוואות', e: '🧾', k: 'f' }
+  { id: 'loan', n: 'הלוואות', e: '🧾', k: 'f' },
+  { id: 'handover', n: 'מסירת מזומן', e: '🤝', k: 'x' }
 ];
 const VCATS = CATS.filter(c => c.k === 'v');
 const catById = id => CATS.find(c => c.id === id) || CATS.find(c => c.id === 'other');
@@ -444,6 +445,7 @@ function cs(key) {
   const income = incomeTotal(), fixed = fixedTotal(), lumps = lumpsMonthly(), savings = +S.settings.savings || 0;
   const varTx = [], instTx = [], byCat = {}; let varSpent = 0, inst = 0;
   for (const t of txLive()) {
+    if (t.cat === 'handover') continue;
     if (t.inst > 1) {
       const c = instCharge(t, key);
       if (c > 0) { inst += c; instTx.push({ t, c }); byCat[t.cat] = (byCat[t.cat] || 0) + c; }
@@ -671,15 +673,15 @@ function periodTx(mode, ref) {
 }
 function pstats(mode, ref) {
   const P = periodTx(mode, ref);
-  const spends = P.tx.filter(t => t.cat !== 'cash'), wd = P.tx.filter(t => t.cat === 'cash');
+  const spends = P.tx.filter(t => t.cat !== 'cash' && t.cat !== 'handover'), wd = P.tx.filter(t => t.cat === 'cash'), hand = P.tx.filter(t => t.cat === 'handover');
   const byDay = Array(7).fill(0); for (const t of spends) byDay[pd(t.date).getDay()] += t.amt;
   const byCat = {}; for (const t of spends) byCat[t.cat] = (byCat[t.cat] || 0) + t.amt;
   const byWho = [0, 0, 0]; for (const t of spends) byWho[t.who] += t.amt;
   const m = me();
-  const allowance = sum(wd.filter(t => (t.holder == null ? t.who : t.holder) === m).map(t => t.amt));
+  const allowance = sum(wd.filter(t => (t.holder == null ? t.who : t.holder) === m).map(t => t.amt)) + sum(hand.filter(t => t.holder === m).map(t => t.amt)) - sum(hand.filter(t => t.who === m).map(t => t.amt));
   const myCash = sum(spends.filter(t => t.method === 'cash' && t.who === m).map(t => t.amt));
   const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
-  return { ...P, spends, wd, byDay, byCat, byWho, cats, total: sum(spends.map(t => t.amt)), allowance, myCash, allowLeft: allowance - myCash };
+  return { ...P, spends, wd, hand, byDay, byCat, byWho, cats, total: sum(spends.map(t => t.amt)), allowance, myCash, allowLeft: allowance - myCash };
 }
 function prevRef(mode, ref) { return mode === 'week' ? addD(ref || weekStart(), -7) : addM(ref || curKey(), -1); }
 function whyInfo(mode, ref, cat) {
@@ -813,12 +815,13 @@ function cashStats(key, ws) {
   if (ws) { const we = addD(ws, 7); inRange = t => t.date >= ws && t.date < we; }
   else { const end = key ? cycleEnd(key) : null; inRange = t => !key || (t.date >= key && t.date < end); }
   const all = txLive();
-  const wd = all.filter(t => t.cat === 'cash'), sp = all.filter(t => t.method === 'cash' && t.cat !== 'cash');
-  const wdC = wd.filter(inRange), spC = sp.filter(inRange);
+  const wd = all.filter(t => t.cat === 'cash'), sp = all.filter(t => t.method === 'cash' && t.cat !== 'cash' && t.cat !== 'handover'), hd = all.filter(t => t.cat === 'handover');
+  const wdC = wd.filter(inRange), spC = sp.filter(inRange), hdC = hd.filter(inRange);
   const by = [0, 0, 0], toBy = [0, 0, 0]; for (const t of wdC) { by[t.who] += t.amt; toBy[t.holder == null ? t.who : t.holder] += t.amt; }
-  const wallet = [0, 0, 0]; for (const t of wd) wallet[t.holder == null ? t.who : t.holder] += t.amt; for (const t of sp) wallet[t.who] -= t.amt;
+  const wallet = [0, 0, 0]; for (const t of wd) wallet[t.holder == null ? t.who : t.holder] += t.amt; for (const t of sp) wallet[t.who] -= t.amt; for (const t of hd) { wallet[t.who] -= t.amt; wallet[t.holder == null ? t.who : t.holder] += t.amt; }
+  const given = [0, 0, 0], got = [0, 0, 0]; for (const t of hdC) { given[t.who] += t.amt; got[t.holder == null ? t.who : t.holder] += t.amt; }
   const wdSum = sum(wdC.map(t => t.amt)), spSum = sum(spC.map(t => t.amt));
-  return { wdC, spC, by, toBy, wdSum, spSum, wallet, gap: Math.max(0, wdSum - spSum) };
+  return { wdC, spC, hdC, by, toBy, given, got, wdSum, spSum, hdSum: sum(hdC.map(t => t.amt)), wallet, gap: Math.max(0, wdSum - spSum) };
 }
 function cashCard() {
   const k = cashStats(curKey());
@@ -832,10 +835,12 @@ function viewCash() {
   const k = cashStats(curKey()), n = names();
   const row = t => txRow(t, null, true);
   return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div>${back()}<h1>מזומן</h1><div class="cyc">משיכות מהכספומט ומה נעשה בהן · ${cycleLabel(curKey())}</div></div></div></header>
-  <div class="sec" style="padding-top:14px"><div class="card"><div class="kv"><span>משכתם החודש</span><b>${money(k.wdSum)}</b></div><div class="kv"><span>מהחשבון של ${esc(n[0])}</span><b>${money(k.by[0])}</b></div><div class="kv"><span>מהחשבון של ${esc(n[1])}</span><b>${money(k.by[1])}</b></div>${k.by[2] ? `<div class="kv"><span>מחשבון משותף</span><b>${money(k.by[2])}</b></div>` : ''}<div class="kv"><span>נמסר ל${esc(n[0])} / ל${esc(n[1])}</span><b>${money(k.toBy[0])} / ${money(k.toBy[1])}</b></div><div class="kv"><span>קניות שנרשמו במזומן</span><b>${money(k.spSum)}</b></div><div class="kv" style="font-size:17px"><span><b>מזומן לא מוסבר החודש</b></span><b style="color:${k.gap > 0 ? 'var(--leak)' : 'var(--ok)'}">${money(k.gap)}</b></div></div>
+  <div class="sec" style="padding-top:14px"><div class="card"><div class="kv"><span>משכתם החודש</span><b>${money(k.wdSum)}</b></div><div class="kv"><span>מהחשבון של ${esc(n[0])}</span><b>${money(k.by[0])}</b></div><div class="kv"><span>מהחשבון של ${esc(n[1])}</span><b>${money(k.by[1])}</b></div>${k.by[2] ? `<div class="kv"><span>מחשבון משותף</span><b>${money(k.by[2])}</b></div>` : ''}<div class="kv"><span>המזומן נשאר אצל ${esc(n[0])} / ${esc(n[1])}</span><b>${money(k.toBy[0])} / ${money(k.toBy[1])}</b></div><div class="kv"><span>🤝 ${esc(n[1])} נתנה ל${esc(n[0])} / ${esc(n[0])} נתן ל${esc(n[1])}</span><b>${money(k.given[1])} / ${money(k.given[0])}</b></div><div class="kv"><span>קניות שנרשמו במזומן</span><b>${money(k.spSum)}</b></div><div class="kv" style="font-size:17px"><span><b>מזומן לא מוסבר החודש</b></span><b style="color:${k.gap > 0 ? 'var(--leak)' : 'var(--ok)'}">${money(k.gap)}</b></div></div>
   <p class="mini mt">${k.gap > 0 ? 'זה כסף שיצא מהבנק ואין לו תיעוד. או שהוא עדיין בארנק, או שנקנה בו משהו שלא נרשם. כל קנייה במזומן נרשמת בפלוס הצהוב עם "מזומן" ב"איך שילמו".' : 'כל המזומן שנמשך החודש מתועד. יפה.'}${k.wallet[0] > 0 || k.wallet[1] > 0 ? ` בארנק של ${esc(n[0])} אמור להיות בערך ${money(Math.max(0, k.wallet[0]))}, ושל ${esc(n[1])} בערך ${money(Math.max(0, k.wallet[1]))} (משיכות שנמסרו פחות קניות במזומן, מאז ההתחלה).` : ''}</p>
-  <button class="btn coin block mt" data-act="addcash">💵 רישום משיכה מהכספומט</button></div>
+  <div class="row2 mt"><button class="btn coin" data-act="addcash">💵 משיכה</button><button class="btn" data-act="handover">🤝 מסירה</button><button class="btn ghost" data-act="addcashbuy">🛒 קנייה</button></div>
+  <p class="mini mt" style="text-align:center">משיכה = כסף שיצא מהבנק · מסירה = מזומן שעבר ביניכם · קנייה = הוצאה במזומן</p></div>
   <div class="sec"><h2>משיכות החודש</h2><div class="list">${k.wdC.slice().sort((a, b) => b.date.localeCompare(a.date)).map(row).join('') || '<div class="empty">אין עדיין משיכות החודש</div>'}</div></div>
+  <div class="sec"><h2>מסירות ביניכם החודש</h2><div class="list">${k.hdC.slice().sort((a, b) => b.date.localeCompare(a.date)).map(row).join('') || '<div class="empty">אין עדיין. "נתתי ל…" או "קיבלתי מ…" נרשם כאן.</div>'}</div></div>
   <div class="sec"><h2>קניות במזומן החודש</h2><div class="list">${k.spC.slice().sort((a, b) => b.date.localeCompare(a.date)).map(row).join('') || '<div class="empty">אין עדיין קניות במזומן החודש</div>'}</div></div>`;
 }
 function openAddCash() {
@@ -847,7 +852,7 @@ function openAddCash() {
 function findDupes() {
   const seen = new Map(), out = [];
   for (const t of txLive().slice().sort((a, b) => (a.at || a.updatedAt || '').localeCompare(b.at || b.updatedAt || ''))) {
-    const k = [t.date, Math.round(t.amt * 100), t.cat, t.who, t.cat === 'cash' ? (t.holder == null ? t.who : t.holder) : ''].join('|');
+    const k = [t.date, Math.round(t.amt * 100), t.cat, t.who, t.cat === 'cash' || t.cat === 'handover' ? (t.holder == null ? t.who : t.holder) : ''].join('|');
     if (seen.has(k)) out.push([seen.get(k), t]); else seen.set(k, t);
   }
   return out;
@@ -1005,6 +1010,7 @@ function relDate(d) { const t = today(); return d === t ? 'היום' : d === add
 function txTime(t) { if (!t.at) return ''; const d = new Date(t.at); if (isNaN(d)) return ''; const ld = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; return ld === t.date ? d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : ''; }
 function txRow(t, key, withDate) {
   const c = catById(t.cat);
+  if (t.cat === 'handover') { const to = t.holder == null ? t.who : t.holder; const sub = [withDate ? relDate(t.date) : '', txTime(t), `${whoName(t.who)} ← ${whoName(to)}`, t.note].filter(Boolean).join(' · '); return `<button class="item" data-act="edithand" data-id="${esc(t.id)}"><span class="ico">🤝</span><span class="t"><b>מסירת מזומן: ${esc(whoName(t.who))} נתן/ה ל${esc(whoName(to))}</b><small>${esc(sub)}</small></span><span class="a" style="color:var(--ink2)">${money(t.amt)}</span></button>`; }
   const instNow = key && t.inst > 1 && t.date < key;
   const amt = instNow ? instCharge(t, key) : t.amt;
   const sub = [withDate ? relDate(t.date) : '', txTime(t), t.why, t.note, whoName(t.who), t.inst > 1 ? (instNow ? `תשלום מתוך ${t.inst}` : `${t.inst} תשלומים`) : '', t.talked ? '✓ דיברנו' : ''].filter(Boolean).join(' · ');
@@ -1249,10 +1255,53 @@ function viewWhy() {
 }
 function cashCardP(k) {
   const n = names();
-  if (!k.wdC.length && !k.spC.length) return `<div class="sec"><button class="card tap" data-act="gocash"><b>💵 משיכות מהכספומט ודמי השבוע</b><p class="mini mt">רשמו כל משיכה: מאיזה חשבון, ולמי נמסר המזומן. אחר כך כל קנייה במזומן נרשמת רגיל, והאפליקציה מראה כמה מזומן "נעלם".</p><p class="mt"><span class="btn ghost sm">+ רישום משיכה</span></p></button></div>`;
+  if (!k.wdC.length && !k.spC.length) return `<div class="sec"><button class="card tap" data-act="gocash"><b>💵 משיכות מהכספומט ודמי השבוע</b><p class="mini mt">רשמו כל משיכה: מאיזה חשבון, ולמי נמסר המזומן. אחר כך כל קנייה במזומן נרשמת רגיל, והאפליקציה מראה כמה מזומן "נעלם".</p></button><div class="row2 mt"><button class="btn ghost sm" data-act="addcash">💵 משיכה</button><button class="btn ghost sm" data-act="handover">🤝 מסירה</button><button class="btn ghost sm" data-act="addcashbuy">🛒 קנייה במזומן</button></div></div>`;
   return `<div class="sec"><h2>מזומן</h2><button class="card tap" data-act="gocash"><div class="stats"><div class="stat"><b>${money(k.wdSum)}</b><span>נמשך</span></div><div class="stat"><b>${money(k.spSum)}</b><span>נרשם במזומן</span></div><div class="stat"><b style="color:${k.gap > 0 ? 'var(--bad)' : 'var(--good)'}">${money(k.gap)}</b><span>לא מוסבר</span></div></div>
-  <p class="mini mt">מהחשבון של ${esc(n[0])}: ${money(k.by[0])} · ${esc(n[1])}: ${money(k.by[1])}${k.by[2] ? ' · משותף: ' + money(k.by[2]) : ''} · בארנק של ${esc(n[0])} בערך ${money(Math.max(0, k.wallet[0]))}, של ${esc(n[1])} בערך ${money(Math.max(0, k.wallet[1]))}</p></button></div>`;
+  <p class="mini mt">מהחשבון של ${esc(n[0])}: ${money(k.by[0])} · ${esc(n[1])}: ${money(k.by[1])}${k.by[2] ? ' · משותף: ' + money(k.by[2]) : ''}${k.hdSum ? ` · נמסר ביניכם: ${money(k.hdSum)}` : ''} · בארנק של ${esc(n[0])} בערך ${money(Math.max(0, k.wallet[0]))}, של ${esc(n[1])} בערך ${money(Math.max(0, k.wallet[1]))}</p></button>
+  <div class="row2 mt"><button class="btn ghost sm" data-act="addcash">💵 משיכה</button><button class="btn ghost sm" data-act="handover">🤝 מסירה</button><button class="btn ghost sm" data-act="addcashbuy">🛒 קנייה במזומן</button></div></div>`;
 }
+
+/* ================= cash handover sheet ("נתתי ל…" / "קיבלתי מ…") ================= */
+let H = null;
+function openHandover(t) {
+  const m = me(), o = 1 - m;
+  H = t ? { id: t.id, amt: String(t.amt), dir: t.who === m ? 'give' : 'get', date: t.date, note: t.note || '', from: t.who, to: t.holder == null ? t.who : t.holder }
+    : { id: null, amt: '', dir: 'give', date: today(), note: '', from: m, to: o };
+  openSheet('<div id="handbody"></div>', { full: true }); drawHand();
+}
+function drawHand() {
+  const b = $('#handbody'); if (!b) return;
+  const m = me(), o = 1 - m, n = names(), a = parseFloat(H.amt) || 0, ok = a > 0;
+  const from = H.dir === 'give' ? m : o, to = H.dir === 'give' ? o : m; H.from = from; H.to = to;
+  const K = cashStats();
+  b.innerHTML = `<h2>${H.id ? 'עריכת מסירה' : 'מסירת מזומן'}<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <div class="seg"><button aria-pressed="${H.dir === 'give'}" data-act="handdir" data-v="give">נתתי ל${esc(n[o])}</button><button aria-pressed="${H.dir === 'get'}" data-act="handdir" data-v="get">קיבלתי מ${esc(n[o])}</button></div>
+  <div class="amtShow mt" aria-live="polite">${H.amt === '' ? '<span style="opacity:.3">0</span>' : esc(H.amt)}<small> ₪</small></div>
+  <div class="hint">${H.dir === 'give' ? `אצל ${esc(n[m])} יש בערך ${money(Math.max(0, K.wallet[m]))} במזומן` : `אצל ${esc(n[o])} יש בערך ${money(Math.max(0, K.wallet[o]))} במזומן`}</div>
+  <div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => `<button data-act="handkey" data-k="${k}" aria-label="${k === '⌫' ? 'מחיקה' : k}">${k}</button>`).join('')}</div>
+  <div class="chips" style="margin-top:4px">${[200, 300, 500, 1000].map(v => `<button class="chip sm" data-act="handamt" data-v="${v}">${money(v)}</button>`).join('')}</div>
+  <div class="field mt"><label for="hnote">הערה (למשל: דמי השבוע)</label><input id="hnote" value="${esc(H.note)}" maxlength="60" data-in="hnote"></div>
+  <div class="field"><label for="hdate">תאריך</label><input id="hdate" type="date" value="${esc(H.date)}" min="2000-01-01" max="${today()}" data-in="hdate"></div>
+  <p class="mini">זו לא הוצאה ולא הכנסה. הכסף רק עובר מארנק לארנק, והאפליקציה עוקבת אצל מי הוא.</p>
+  <div class="saveBar"><div class="mini" style="text-align:center;margin-bottom:6px">${esc(n[from])} ← ${esc(n[to])}</div><div class="row2">${H.id ? '<button class="btn danger" style="flex:none" data-act="delhand">מחיקה</button>' : ''}<button class="btn coin block" data-act="savehand" ${ok ? '' : 'disabled'}>${ok ? (H.id ? 'שמירה' : 'שמירה · ' + moneyT(a)) : 'הקלידו סכום'}</button></div></div>`;
+}
+function saveHand() {
+  const amt = Math.round((parseFloat(H.amt) || 0) * 100) / 100; if (!(amt > 0)) return;
+  const dd = okDate(H.date) && H.date <= today() ? H.date : today();
+  const t = { id: H.id || uid(), date: dd, amt, cat: 'handover', who: H.from, holder: H.to, method: 'cash', note: (H.note || '').trim(), why: '', inst: 0, talked: false, updatedAt: nowISO() };
+  const i = S.tx.findIndex(x => x.id === t.id); const prev = i >= 0 ? S.tx[i] : null; t.at = prev && prev.at ? prev.at : nowISO();
+  if (i >= 0) S.tx[i] = t; else S.tx.push(t);
+  save(); buzz(); closeSheet(); render();
+  toast(`נרשם: ${whoName(H.from)} נתן/ה ל${whoName(H.to)} ${moneyT(amt)}`);
+}
+var ACT_PRE = {
+  handover: () => openHandover(), edithand: el => { const t = S.tx.find(x => x.id === el.dataset.id); if (t) openHandover(t); },
+  handdir: el => { H.dir = el.dataset.v; drawHand(); }, handamt: el => { H.amt = String(el.dataset.v); drawHand(); },
+  handkey: el => { const k = el.dataset.k; let a = H.amt; if (k === '⌫') a = a.slice(0, -1); else if (k === '.') { if (!a.includes('.')) a = (a || '0') + '.'; } else { if (a === '0') a = ''; if (a.replace('.', '').length < 8 && !/\.\d\d$/.test(a)) a += k; } H.amt = a; drawHand(); buzz(); },
+  savehand: () => saveHand(),
+  delhand: () => { const i = S.tx.findIndex(x => x.id === H.id); if (i >= 0) { S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); } closeSheet(); render(); toast('נמחק'); },
+  addcashbuy: () => { const d = newDraft(); d.method = 'cash'; d.who = me(); D = d; openSheet('<div id="addbody"></div>', { full: true }); drawAdd(); }
+};
 /* ================= monthly report, CSV, PIN lock ================= */
 function downloadFile(name, text, mime) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime || 'text/plain;charset=utf-8' })); a.download = name;
@@ -1729,6 +1778,7 @@ function finishOnboarding(demo) {
 
 /* ================= event wiring ================= */
 const ACT = {
+  ...(typeof ACT_PRE === 'object' ? ACT_PRE : {}),
   pinwipe: (...a) => ACT_LATE.pinwipe(...a), pincancel: (...a) => ACT_LATE.pincancel(...a),
   add: () => openAdd(), closesheet: () => closeSheet(),
   key: el => { const k = el.dataset.k; let a = D.amt; if (k === '⌫') a = a.slice(0, -1); else if (k === '.') { if (!a.includes('.')) a = (a || '0') + '.'; } else { if (a === '0') a = ''; if (a.replace('.', '').length < 8 && !/\.\d\d$/.test(a)) a += k; } D.amt = a; drawAdd(); buzz(); if (a.length === 1 && !D.cat) { const el = $('.cats'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } },
@@ -1742,7 +1792,7 @@ const ACT = {
     const wasNew = !D.id;
     const split = D.cat === 'cash' && !D.id && (D.holder === 0 || D.holder === 1) ? Math.round((parseFloat(D.split) || 0) * 100) / 100 : 0;
     const total = parseFloat(D.amt) || 0;
-    if (split > 0 && split < total) { const other = 1 - D.holder, base = { ...D, id: null }; saveTx({ ...base, amt: String(Math.round((total - split) * 100) / 100) }); const r2 = saveTx({ ...base, amt: String(split), holder: other }); closeSheet(); render(); toast(`נרשמו שתי משיכות: ${moneyT(total - split)} ל${whoName(D.holder)} ו־${moneyT(split)} ל${whoName(other)}`); return; }
+    if (split > 0 && split <= total) { const other = 1 - D.holder; const r1 = saveTx({ ...D, id: null }); const at = nowISO(); S.tx.push({ id: uid(), date: r1.t.date, amt: split, cat: 'handover', who: D.holder, holder: other, method: 'cash', note: 'מתוך המשיכה', why: '', inst: 0, talked: false, at, updatedAt: at }); save(); closeSheet(); render(); toast(`נרשמה משיכה של ${moneyT(total)}, ומסירה של ${moneyT(split)} מ${whoName(D.holder)} ל${whoName(other)}`); return; }
     const r = saveTx(); if (!r) return;
     closeSheet(); render();
     const big = r.t.amt >= S.settings.approve && !r.t.talked;
@@ -1790,6 +1840,10 @@ document.addEventListener('input', e => {
     const k = el.dataset.in;
     if (k === 'note') D.note = el.value;
     else if (k === 'split') D.split = el.value;
+  }
+  if (el.dataset.in && H) {
+    const k = el.dataset.in;
+    if (k === 'hnote') H.note = el.value; else if (k === 'hdate') H.date = el.value;
     else if (k === 'talked') D.talked = el.checked;
   }
 });
