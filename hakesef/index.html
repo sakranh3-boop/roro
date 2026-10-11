@@ -1216,11 +1216,12 @@ function viewHome() {
   let hero;
   if (MODE === 'week') {
     const weekBudget = c.budget > 0 ? c.budget / (c.days / 7) : 0;
-    const hasAllow = P.allowance > 0;
-    const frac = hasAllow ? P.myCash / P.allowance : weekBudget ? P.total / weekBudget : 0;
-    const color = frac > 1 ? 'var(--bad)' : frac > .85 ? 'var(--coin)' : 'var(--good)';
-    const ring = hasAllow ? ringSVG(frac, color, 'נשאר מדמי השבוע', money(P.allowLeft), `מתוך ${money(P.allowance)}`) : ringSVG(frac, color, 'הוצאנו השבוע', money(P.total), weekBudget ? `תקציב שבועי ${money(weekBudget)}` : '');
-    hero = `<div class="live"><div class="liveTop">${ring}<div class="liveStats"><div class="kv"><span>הוצאות השבוע</span><b>${money(P.total)}</b></div><div class="kv"><span>${esc(n[0])}</span><b>${money(P.byWho[0] + P.byWho[2] / 2)}</b></div><div class="kv"><span>${esc(n[1])}</span><b>${money(P.byWho[1] + P.byWho[2] / 2)}</b></div><div class="kv"><span>במזומן (${esc(myName())})</span><b>${money(P.myCash)}</b></div></div></div>${dayBars(P.byDay, P.start)}</div>`;
+    const KW = cashStats(), wallet = KW.wallet[m], avail = P.myCash + Math.max(0, wallet);
+    const hasAllow = P.allowance > 0 || wallet > 0 || P.myCash > 0;
+    const frac = hasAllow ? (avail > 0 ? P.myCash / avail : 1) : weekBudget ? P.total / weekBudget : 0;
+    const color = frac > 1 || (hasAllow && wallet < 0) ? 'var(--bad)' : frac > .85 ? 'var(--coin)' : 'var(--good)';
+    const ring = hasAllow ? ringSVG(frac, color, wallet < 0 ? 'חסר רישום של משיכה' : 'נשאר לי במזומן', money(Math.max(0, wallet)), `השבוע +${money(P.allowance)} −${money(P.myCash)}`) : ringSVG(frac, color, 'הוצאנו השבוע', money(P.total), weekBudget ? `תקציב שבועי ${money(weekBudget)}` : '');
+    hero = `<div class="live"><div class="liveTop">${ring}<div class="liveStats"><div class="kv"><span>הוצאות השבוע</span><b>${money(P.total)}</b></div><div class="kv"><span>${esc(n[0])}</span><b>${money(P.byWho[0] + P.byWho[2] / 2)}</b></div><div class="kv"><span>${esc(n[1])}</span><b>${money(P.byWho[1] + P.byWho[2] / 2)}</b></div><div class="kv"><span>במזומן אצל שניכם</span><b>${money(Math.max(0, KW.wallet[0]) + Math.max(0, KW.wallet[1]))}</b></div></div></div>${dayBars(P.byDay, P.start)}</div>`;
   } else {
     const level = c.budget > 0 ? Math.max(0, Math.min(1, c.remaining / c.budget)) : 0;
     const daily = c.budget > 0 ? Math.max(0, c.remaining) / p.left : 0;
@@ -1537,7 +1538,8 @@ function drawAdd() {
   const body = $('#addbody'); if (!body) return;
   const sc = body.parentElement.scrollTop;
   const a = parseFloat(D.amt) || 0, hr = hourly(D.who);
-  const hint = a >= 30 && hr > 0 ? `זה בערך ${nf1.format(a / hr)} שעות עבודה` : '';
+  let hint = a >= 30 && hr > 0 ? `זה בערך ${nf1.format(a / hr)} שעות עבודה` : '';
+  if (D.method === 'cash' && D.cat !== 'cash' && (D.who === 0 || D.who === 1)) { const w = cashStats().wallet[D.who] + (D.id ? (S.tx.find(x => x.id === D.id) || { amt: 0 }).amt : 0); const after = w - a; hint = `במזומן אצל ${esc(whoName(D.who))}: ${money(Math.max(0, w))} · אחרי ההוצאה: <b style="color:${after < 0 ? 'var(--bad)' : 'var(--good)'}">${money(after)}</b>`; }
   const qc = !D.id ? quickCombos() : [];
   const ok = a > 0 && D.cat;
   const isCash = D.cat === 'cash';
@@ -1796,7 +1798,8 @@ const ACT = {
     const r = saveTx(); if (!r) return;
     closeSheet(); render();
     const big = r.t.amt >= S.settings.approve && !r.t.talked;
-    toast(`נרשם ${moneyT(r.t.amt)}${big && wasNew ? ' · הוצאה גדולה, כדאי לדבר עליה' : ''}`, wasNew ? () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); } : null);
+    const cashLeft = r.t.method === 'cash' && r.t.cat !== 'cash' && (r.t.who === 0 || r.t.who === 1) ? cashStats().wallet[r.t.who] : null;
+    toast(`נרשם ${moneyT(r.t.amt)}${cashLeft != null ? ` · נשאר במזומן ${moneyT(Math.max(0, cashLeft))}` : ''}${big && wasNew ? ' · הוצאה גדולה, כדאי לדבר עליה' : ''}`, wasNew ? () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); } : null);
   },
   deltx: () => deleteTx(D.id),
   quick: el => { const q = quickCombos()[+el.dataset.i]; if (!q) return; const r = saveTx({ amt: String(q.amt), cat: q.cat, who: q.who, method: q.method || 'card', inst: 1, date: today(), note: '' }); closeSheet(); render(); toast(`נשמר ${moneyT(q.amt)} ${catById(q.cat).n}`, () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); }); },
