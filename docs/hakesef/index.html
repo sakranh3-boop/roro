@@ -1,0 +1,1804 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>הכסף שלנו</title>
+<meta name="theme-color" content="#0F6B57">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="הכסף שלנו">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+/* Layout: fixed-width phone column; gradient header with mode switch; one "live" card overlapping the header; sections of cards below; bottom tab bar with a raised + button. */
+:root{
+  --bg:#EEF3F1;--surface:#FFFFFF;--surface2:#F3F7F5;--ink:#0E1F1A;--ink2:#5A6E67;--line:#DCE5E1;
+  --brand:#0B6B4F;--brand2:#139C76;--brand3:#1FC08F;--hero1:#0A3D34;--hero2:#0F6B57;--hero3:#19A47E;
+  --coin:#FFB020;--coin-ink:#3B2600;--bad:#D7263D;--bad-bg:#FBE7EA;--good:#13875F;--good-bg:#E2F5EC;--warn:#A05A00;--warn-bg:#FFF1D6;--info:#2563EB;
+  --water:#139C76;--water2:#8FE3C7;--deep:#0B6B4F;--leak:#D7263D;--leak-bg:#FBE7EA;--ok:#13875F;--ok-bg:#E2F5EC;
+  --shadow:0 1px 2px rgba(14,31,26,.05),0 10px 30px rgba(14,31,26,.07);
+  --tab-h:66px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0B1411;--surface:#132019;--surface2:#0F1A15;--ink:#E7F2ED;--ink2:#97ACA3;--line:#243630;
+  --brand:#19A47E;--brand2:#2BC592;--brand3:#5EE2B6;--hero1:#08201B;--hero2:#0B3A30;--hero3:#0F5C48;
+  --coin:#FFB83D;--bad:#FF6B7D;--bad-bg:#3A1A20;--good:#4ED39B;--good-bg:#12362A;--warn:#F2B35A;--warn-bg:#3A2A10;--info:#7FA8FF;
+  --water:#2BC592;--water2:#5EE2B6;--deep:#19A47E;--leak:#FF6B7D;--leak-bg:#3A1A20;--ok:#4ED39B;--ok-bg:#12362A;--shadow:none}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Rubik","Heebo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+body{min-height:100dvh;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+input,select,textarea{background:var(--surface2);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-height:46px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--brand3);outline-offset:1px}
+.num{font-variant-numeric:tabular-nums;unicode-bidi:isolate;direction:ltr;display:inline-block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+h1,h2,h3,p{margin:0}
+.lnk{text-decoration:underline;font-weight:600;color:var(--brand)}
+
+#app{max-width:560px;margin:0 auto;min-height:100dvh;position:relative;padding-bottom:calc(var(--tab-h) + 28px + env(safe-area-inset-bottom))}
+#view{display:block}
+
+/* tab bar */
+#tabs{position:fixed;inset-inline:0;bottom:0;z-index:20;display:flex;justify-content:center;pointer-events:none}
+#tabs .tbar{pointer-events:auto;width:min(560px,100%);height:calc(var(--tab-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 84px 1fr 1fr;align-items:center;box-shadow:0 -6px 24px rgba(14,31,26,.06)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12.5px;color:var(--ink2);height:var(--tab-h);justify-content:center;position:relative}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-current=page]{color:var(--brand);font-weight:600}
+.tab[aria-current=page]::after{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--brand)}
+#fab{width:64px;height:64px;border-radius:22px;background:var(--coin);color:var(--coin-ink);justify-self:center;margin-top:-30px;box-shadow:0 8px 20px rgba(255,176,32,.5),0 0 0 6px var(--bg);display:grid;place-items:center;transition:transform .15s;transform:rotate(45deg)}
+#fab svg{width:30px;height:30px;stroke:currentColor;stroke-width:3;stroke-linecap:round;fill:none;transform:rotate(-45deg)}
+#fab:active{transform:rotate(45deg) scale(.93)}
+
+/* hero */
+.hero{background:radial-gradient(120% 90% at 100% 0%,var(--hero3) 0%,transparent 55%),linear-gradient(165deg,var(--hero1),var(--hero2) 75%);color:#fff;padding:calc(16px + env(safe-area-inset-top)) 18px 70px;border-radius:0 0 30px 30px}
+.hero .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hero h1{font-size:22px;font-weight:700;letter-spacing:-.2px}
+.hero .hi{font-size:22px;font-weight:700}
+.hero .cyc{font-size:13px;opacity:.85;margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;border-radius:99px;padding:0 14px;font-size:13px;min-height:40px;white-space:nowrap}
+.modeSeg{margin-top:14px;background:rgba(0,0,0,.22);border-color:transparent}
+.modeSeg button{color:rgba(255,255,255,.8)}
+.modeSeg button[aria-pressed=true]{background:#fff;color:var(--hero2)}
+.liveCard{margin:-54px 14px 0;background:var(--surface);border-radius:26px;box-shadow:var(--shadow);padding:16px 14px 12px;position:relative}
+.liveTop{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center}
+.liveStats .kv{padding:5px 0;font-size:14px}
+.liveStats .kv b{font-size:15px}
+.ring{position:relative;width:150px;height:150px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface2);stroke-width:13}
+.ring-fg{fill:none;stroke-width:13;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)}
+.ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 18px}
+.ring-txt b{font-size:22px;font-weight:700;line-height:1.05;letter-spacing:-.4px}
+.ring-txt span{font-size:11.5px;color:var(--ink2);margin-top:3px;line-height:1.2}
+.ring-txt small{font-size:11px;color:var(--ink2);margin-top:2px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;height:84px;align-items:end;margin-top:12px;direction:rtl}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+.day i{display:block;width:100%;max-width:26px;border-radius:7px 7px 3px 3px;background:var(--brand2);transition:height .4s}
+.day.today i{background:var(--coin)}
+.day.future i{background:var(--line)}
+.day span{font-size:11px;color:var(--ink2)}
+.day small{font-size:10px;color:var(--ink2);height:12px;line-height:12px}
+.day.today span{color:var(--ink);font-weight:700}
+
+/* quick tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:10px 4px 8px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:74px;border-bottom:3px solid var(--c,var(--line));line-height:1.15;text-align:center}
+.tile span{font-size:26px;line-height:1.1}
+.tile:active{transform:scale(.96)}
+
+/* where did it go */
+.stack{display:flex;height:16px;border-radius:99px;overflow:hidden;background:var(--surface2);direction:rtl}
+.stack i{display:block;height:100%;min-width:3px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:10px}
+.legend button{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;min-height:34px}
+.legend button i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend b{font-weight:600}
+.whyCard{width:100%;text-align:start;display:block}
+.whyCard .row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.whyTitle{font-size:17px;font-weight:600}
+.whyAmt{text-align:end}
+.whyAmt .num{font-size:22px;font-weight:700}
+.whyAmt small{display:block;font-size:12px;color:var(--ink2)}
+.whyBig{margin-top:10px;padding:9px 11px;background:var(--surface2);border-radius:12px;font-size:13.5px}
+.card.tap{width:100%;text-align:start;display:block}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat{background:var(--surface2);border-radius:16px;padding:10px 8px;text-align:center}
+.stat b{display:block;font-size:18px;font-weight:600}
+.stat span{font-size:12.5px;color:var(--ink2)}
+.verdict{margin:12px 2px 0;padding:10px 14px;border-radius:14px;font-size:14.5px;display:flex;gap:10px;align-items:center}
+.verdict.good{background:var(--good-bg);color:var(--good)}
+.verdict.mid{background:var(--warn-bg);color:var(--warn)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad)}
+
+.sec{padding:18px 16px 0}
+.sec>h2{font-size:17px;font-weight:600;margin-bottom:10px}
+.sec>.sub{font-size:13.5px;color:var(--ink2);margin:-6px 0 10px}
+.card{background:var(--surface);border-radius:20px;box-shadow:var(--shadow);padding:14px 16px}
+.card+.card{margin-top:10px}
+.list{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.item{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:start;border-bottom:1px solid var(--line);min-height:56px}
+.item:last-child{border-bottom:0}
+.item:active{background:var(--surface2)}
+.item .ico{width:40px;height:40px;border-radius:13px;background:var(--surface2);display:grid;place-items:center;font-size:20px;flex:none}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t small{color:var(--ink2);font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .a{font-weight:600;white-space:nowrap}
+.item .a.in{color:var(--good)}
+.item input[type=checkbox]{width:28px;height:28px;margin:8px}
+.chev{width:18px;height:18px;stroke:var(--ink2);fill:none;stroke-width:2;flex:none}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:14px;font-weight:600;background:var(--brand);color:#fff}
+.btn.coin{background:var(--coin);color:var(--coin-ink)}
+.btn.ghost{background:var(--surface2);color:var(--ink);border:1.5px solid var(--line)}
+.btn.danger{background:var(--bad-bg);color:var(--bad)}
+.btn.block{display:flex;width:100%}
+.btn.sm{min-height:44px;padding:0 14px;font-size:14px;border-radius:11px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row2{display:flex;gap:10px;align-items:center}
+.row2>*{flex:1}
+.mt{margin-top:12px}.mt2{margin-top:20px}
+
+/* leak cards */
+.holeHero{background:linear-gradient(160deg,#9E1B2F,#C8253E 70%,#E04A5F);color:#fff;border-radius:24px;padding:18px 18px 16px;box-shadow:0 12px 30px rgba(200,37,62,.28);position:relative;overflow:hidden;width:100%;text-align:start;display:block}
+.holeHero::after{content:"";position:absolute;inset-inline-end:-30px;bottom:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.1)}
+.holeHero small{font-size:13px}
+.holeHero .big{font-size:34px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin:4px 0}
+.holeHero h2{font-size:19px;font-weight:600}
+.holeHero p{font-size:14px;margin-top:6px}
+.leak{border-radius:18px;background:var(--surface);box-shadow:var(--shadow);padding:14px 16px;border-inline-start:5px solid var(--bad);margin-bottom:10px}
+.leak.struct{border-inline-start-color:var(--warn)}
+.leak.info{border-inline-start-color:var(--brand2)}
+.leak .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.leak h3{font-size:16px;font-weight:600}
+.leak .y{font-weight:700;color:var(--bad);white-space:nowrap}
+.leak.struct .y{color:var(--warn)}
+.leak p{font-size:14px;color:var(--ink2);margin-top:5px}
+.leak .act{margin-top:8px;font-size:14px;background:var(--surface2);border-radius:11px;padding:8px 11px}
+.empty{text-align:center;color:var(--ink2);padding:26px 16px}
+.empty .big{font-size:40px}
+.seg{display:flex;background:var(--surface2);border:1.5px solid var(--line);border-radius:14px;padding:3px;gap:3px}
+.seg button{flex:1;min-height:44px;border-radius:11px;font-size:14.5px;color:var(--ink2)}
+.seg button[aria-pressed=true]{background:var(--brand);color:#fff;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--surface2);border-radius:99px;padding:8px 14px;font-size:14.5px;min-height:44px;display:inline-flex;align-items:center}
+.chip.sm{min-height:36px;padding:4px 12px;font-size:13.5px}
+.chip[aria-pressed=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.bar{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--brand2)}
+.barRow{display:grid;grid-template-columns:90px 1fr 70px;gap:8px;align-items:center;font-size:13.5px;margin:7px 0}
+.barRow .v{text-align:end;font-weight:500}
+.kv{display:flex;justify-content:space-between;padding:7px 0;font-size:15px;gap:8px}
+.kv+.kv{border-top:1px dashed var(--line)}
+.tag{font-size:12px;padding:2px 9px;border-radius:99px;background:var(--surface2);color:var(--ink2)}
+.banner{margin:12px 16px 0;padding:12px 14px;border-radius:16px;background:var(--warn-bg);color:var(--warn);font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.banner button{margin-inline-start:auto;font-weight:600;text-decoration:underline;white-space:nowrap;min-height:44px;padding:0 10px}
+.banner.info{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.banner.install{background:linear-gradient(135deg,var(--hero2),var(--hero3));color:#fff;align-items:center}
+.banner.install button{background:#fff;color:var(--hero2);text-decoration:none;border-radius:12px;padding:0 16px}
+
+/* sheet */
+.ov{position:fixed;inset:0;z-index:90;background:rgba(5,20,15,.55);display:flex;align-items:flex-end;justify-content:center;animation:fade .18s}
+.sheet{background:var(--bg);width:min(560px,100%);max-height:94dvh;border-radius:26px 26px 0 0;overflow:auto;padding:8px 16px calc(18px + env(safe-area-inset-bottom));animation:up .24s cubic-bezier(.2,.8,.2,1);-webkit-overflow-scrolling:touch;border-top:1px solid var(--line)}
+.sheet.full{height:94dvh}
+.grab{width:42px;height:5px;border-radius:9px;background:var(--line);margin:4px auto 10px}
+.sheet h2{font-size:19px;font-weight:600;margin:4px 0 12px;display:flex;align-items:center;justify-content:space-between}
+.x{width:44px;height:44px;border-radius:50%;background:var(--surface2);display:grid;place-items:center;font-size:20px;color:var(--ink2)}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.amtShow{text-align:center;font-size:44px;font-weight:700;letter-spacing:-1px;padding:2px 0;min-height:60px}
+.amtShow small{font-size:22px;color:var(--ink2);font-weight:500}
+.hint{text-align:center;font-size:13px;color:var(--ink2);min-height:19px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px;direction:ltr}
+.pad button{height:48px;border-radius:15px;background:var(--surface);box-shadow:var(--shadow);font-size:24px;font-weight:500}
+.pad button:active{background:var(--surface2)}
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cat{background:var(--surface);border:2px solid transparent;border-radius:15px;padding:9px 2px 7px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:var(--shadow);min-height:62px;line-height:1.15;text-align:center}
+.cat span{font-size:23px;line-height:1.2}
+.cat[aria-pressed=true]{border-color:var(--brand);background:var(--surface2);font-weight:600}
+.lbl{font-size:13px;color:var(--ink2);margin:14px 0 6px}
+.saveBar{position:sticky;bottom:-18px;margin:0 -16px;padding:10px 16px 6px;background:var(--bg);border-top:1px solid var(--line)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:5px}
+.toast{position:fixed;z-index:80;inset-inline:0;bottom:calc(var(--tab-h) + 22px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
+.toast>div{pointer-events:auto;background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:14px;font-size:14.5px;display:flex;gap:14px;align-items:center;animation:up .2s;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast button{font-weight:700;color:var(--coin);text-decoration:underline;min-height:44px;padding:0 10px}
+.onb{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top)) 20px 30px}
+.onb .inner{max-width:480px;margin:0 auto}
+.onb h1{font-size:28px;font-weight:700;letter-spacing:-.5px;margin:10px 0 6px}
+.onb p.lead{color:var(--ink2);margin-bottom:18px}
+.obLogo{width:72px;height:72px;border-radius:22px;background:linear-gradient(160deg,var(--hero2),var(--hero3));color:#fff;font-size:40px;font-weight:700;display:grid;place-items:center;box-shadow:var(--shadow)}
+.dots{display:flex;gap:6px;margin-bottom:6px}
+.dots i{height:5px;flex:1;border-radius:9px;background:var(--line)}
+.dots i.on{background:var(--brand)}
+.fx{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){.sheet,.ov,.toast>div{animation:none}.ring-fg,.day i{transition:none}}
+.bubble{display:inline-block;width:11px;height:11px;border-radius:3px;margin-inline-end:6px}
+details.fold{margin-top:10px}
+details.fold summary{cursor:pointer;font-weight:500;padding:10px 0;list-style:none;display:flex;justify-content:space-between}
+details.fold summary::-webkit-details-marker{display:none}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sw input[type=checkbox]{width:24px;height:24px;min-height:0}
+.kpi3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini{font-size:13px;color:var(--ink2)}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t td,table.t th{padding:6px 4px;text-align:start;border-bottom:1px solid var(--line)}
+.card.hl{border:2px solid var(--brand)}
+@media (max-height:760px){
+  .pad{gap:6px;margin:4px 0 8px}.pad button{height:40px;font-size:22px}
+  .amtShow{font-size:36px;min-height:46px}.hint{min-height:0;font-size:12px}
+  .cat{min-height:54px;padding:6px 2px}
+}
+@media (max-width:360px){.liveTop{grid-template-columns:130px 1fr}.ring{width:130px;height:130px}.ring-txt b{font-size:19px}}
+@keyframes pulse{50%{transform:rotate(45deg) scale(1.1)}}
+#fab.pulse{animation:pulse 1.4s 3}
+/* iOS install overlay */
+.iosHint{position:fixed;inset-inline:16px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:95;background:var(--surface);color:var(--ink);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:14px 16px 16px;font-size:14.5px;animation:up .3s}
+.iosHint::after{content:"";position:absolute;bottom:-10px;left:50%;margin-left:-10px;border:10px solid transparent;border-top-color:var(--surface);border-bottom:0}
+.iosHint b{display:block;font-size:16px;margin-bottom:6px}
+.iosHint .x{position:absolute;top:8px;inset-inline-end:8px;width:36px;height:36px}
+.iosHint .shareIco{display:inline-block;width:18px;height:18px;vertical-align:-3px;margin:0 3px}
+</style>
+</head>
+<body>
+<div id="app"><main id="view"></main></div>
+<nav id="tabs" aria-label="ניווט ראשי"></nav>
+<div id="toast" class="toast" aria-live="polite"></div>
+<noscript>האפליקציה צריכה JavaScript כדי לעבוד.</noscript>
+<script>
+const ART=false;
+'use strict';
+/* ================= helpers ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const nowISO = () => new Date().toISOString();
+const nf = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat('he-IL', { maximumFractionDigits: 1 });
+const money = n => `<bdi class="num">${n < 0 ? '−' : ''}₪${nf.format(Math.abs(Math.round(n)))}</bdi>`;
+const moneyT = n => `${n < 0 ? '−' : ''}₪${nf.format(Math.abs(Math.round(n)))}`;
+const median = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const sum = a => a.reduce((x, y) => x + y, 0);
+
+function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function pd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12, 0, 0); }
+function today() { return ymd(new Date()); }
+function addD(s, n) { const d = pd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function diffD(a, b) { return Math.round((pd(b) - pd(a)) / 86400000); }
+function addM(s, n) { const d = pd(s); const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + n); d.setDate(Math.min(day, 28)); return ymd(d); }
+function monthIdx(s) { const d = pd(s); return d.getFullYear() * 12 + d.getMonth(); }
+function cycleStart(s, payday) {
+  payday = Math.min(28, Math.max(1, Math.floor(+payday) || 1));
+  const d = pd(s); let y = d.getFullYear(), m = d.getMonth();
+  if (d.getDate() < payday) { m--; if (m < 0) { m = 11; y--; } }
+  return ymd(new Date(y, m, payday, 12));
+}
+function cycleEnd(start) { const d = pd(start); return ymd(new Date(d.getFullYear(), d.getMonth() + 1, d.getDate(), 12)); }
+const fmtShort = s => pd(s).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+const fmtDay = s => pd(s).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+function cycleLabel(key) { return `${fmtShort(key)} – ${fmtShort(addD(cycleEnd(key), -1))}`; }
+
+/* ================= categories ================= */
+const CATS = [
+  { id: 'transport', n: 'דלק', e: '⛽', k: 'v' }, { id: 'grocery', n: 'מכולת ליד הבית', e: '🏪', k: 'v' },
+  { id: 'produce', n: 'פירות וירקות', e: '🍎', k: 'v' }, { id: 'bakery', n: 'מאפייה', e: '🥖', k: 'v' },
+  { id: 'pharmacy', n: 'בית מרקחת', e: '💊', k: 'v' }, { id: 'grocery2', n: 'מכולת אחרת', e: '🧺', k: 'v' },
+  { id: 'shop2', n: 'חנות אחרת', e: '🏬', k: 'v' }, { id: 'food', n: 'סופר גדול', e: '🛒', k: 'v' },
+  { id: 'eatout', n: 'אוכל בחוץ', e: '☕', k: 'v' }, { id: 'delivery', n: 'משלוחים', e: '🛵', k: 'v' },
+  { id: 'kids', n: 'ילדים', e: '🧸', k: 'v' }, { id: 'health', n: 'רופאים ובריאות', e: '🩺', k: 'v' },
+  { id: 'home', n: 'בית וציוד', e: '🛋️', k: 'v' }, { id: 'clothes', n: 'ביגוד', e: '👕', k: 'v' },
+  { id: 'fun', n: 'בילויים', e: '🎟️', k: 'v' }, { id: 'subs', n: 'מנויים', e: '📺', k: 'v' },
+  { id: 'gifts', n: 'מתנות', e: '🎁', k: 'v' }, { id: 'cash', n: 'משיכת מזומן', e: '💵', k: 'v' },
+  { id: 'fees', n: 'עמלות וריבית', e: '🏦', k: 'v' }, { id: 'other', n: 'אחר', e: '📦', k: 'v' },
+  { id: 'housing', n: 'דיור', e: '🏠', k: 'f' }, { id: 'bills', n: 'חשבונות בית', e: '💡', k: 'f' },
+  { id: 'comms', n: 'תקשורת', e: '📱', k: 'f' }, { id: 'insur', n: 'ביטוחים', e: '🛡️', k: 'f' },
+  { id: 'car', n: 'רכב קבוע', e: '🚗', k: 'f' }, { id: 'edu', n: 'חינוך וצהרון', e: '🎒', k: 'f' },
+  { id: 'loan', n: 'הלוואות', e: '🧾', k: 'f' }
+];
+const VCATS = CATS.filter(c => c.k === 'v');
+const catById = id => CATS.find(c => c.id === id) || CATS.find(c => c.id === 'other');
+const CAT_COL = ['#F59E0B', '#14B8A6', '#EF4444', '#D97706', '#8B5CF6', '#06B6D4', '#EC4899', '#3B82F6', '#F97316', '#84CC16', '#A855F7', '#10B981', '#6366F1', '#F43F5E', '#0EA5E9', '#22C55E', '#64748B', '#9CA3AF', '#0B6B4F', '#E11D48', '#0284C7', '#7C3AED', '#65A30D', '#DB2777', '#475569', '#B45309', '#15803D'];
+const colOf = id => CAT_COL[CATS.findIndex(c => c.id === id) % CAT_COL.length] || '#888';
+const METHODS = { card: 'אשראי', cash: 'מזומן', bank: 'העברה' };
+const WHYS = ['בית', 'ילדים', 'אירוח', 'חג', 'לא מתוכנן', 'מבצע', 'חובה', 'עבודה'];
+const DAYS_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+function weekStart(d) { const x = pd(d || today()); x.setDate(x.getDate() - x.getDay()); return ymd(x); }
+const me = () => S.settings.me == null ? 0 : S.settings.me;
+const myName = () => names()[me()] || 'אני';
+
+/* ================= state ================= */
+const KEY = 'hk_v1';
+let storageOK = true;
+let CACHE = {};
+let S = null;
+function defaults() {
+  return {
+    v: 1, deviceId: uid(), created: nowISO(),
+    settings: { names: ['חמזה', 'רורו'], me: null, payday: 10, hours: 182, small: 50, approve: 500, savings: 0, updatedAt: nowISO() },
+    incomes: [], fixed: [], lumps: [], tx: [], rules: {}, flags: { sub: {} }, lastBackup: null, onboarded: false, demo: false,
+    meeting: { last: null, decision: '' }, pin: null, reportSeen: null, lastUsed: { who: 0, method: 'card' }, dismissed: {}, savedAt: null, rev: 0, lastAutoBk: null, embeddedSeen: null
+  };
+}
+
+/* ---- validation (protects against broken backups) ---- */
+const okStr = v => typeof v === 'string', numv = v => Number.isFinite(+v) ? +v : 0;
+const okId = v => okStr(v) && /^[\w-]{1,40}$/.test(v), okDate = v => okStr(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= '2000-01-01';
+function cleanArr(a, kind) {
+  if (!Array.isArray(a)) return [];
+  const out = [];
+  for (const x of a) {
+    if (!x || typeof x !== 'object' || !okId(x.id) || !okStr(x.updatedAt)) continue;
+    const r = { ...x, id: x.id, updatedAt: x.updatedAt, deleted: !!x.deleted };
+    if (kind === 'tx') { if (!okDate(x.date)) continue; r.amt = numv(x.amt); if (!(r.amt > 0) && !r.deleted) continue; r.who = [0, 1, 2].includes(+x.who) ? +x.who : 0; r.cat = okStr(x.cat) ? x.cat : 'other'; r.note = okStr(x.note) ? x.note.slice(0, 200) : ''; r.inst = numv(x.inst); r.method = okStr(x.method) ? x.method : 'card'; r.holder = [0, 1, 2].includes(+x.holder) && x.holder != null ? +x.holder : undefined; r.why = okStr(x.why) ? x.why.slice(0, 40) : ''; r.at = okStr(x.at) && !isNaN(Date.parse(x.at)) ? x.at.slice(0, 30) : undefined; }
+    if (kind === 'inc' || kind === 'fix') { r.amount = numv(x.amount); r.name = String(x.name || '').slice(0, 100); r.who = [0, 1, 2].includes(+x.who) ? +x.who : 0; r.cat = okStr(x.cat) ? x.cat : 'bills'; }
+    if (kind === 'lump') { r.amountYear = numv(x.amountYear); r.name = String(x.name || '').slice(0, 100); }
+    out.push(r);
+  }
+  return out;
+}
+function cleanSettings(s) {
+  const d = defaults().settings; s = s && typeof s === 'object' ? s : {};
+  const n = Array.isArray(s.names) ? s.names.slice(0, 2).map(x => String(x || '').slice(0, 40)) : d.names;
+  return { names: [n[0] || d.names[0], n[1] || d.names[1]], me: [0, 1].includes(+s.me) && s.me !== null && s.me !== undefined ? +s.me : null, payday: Math.min(28, Math.max(1, Math.floor(+s.payday) || 10)), hours: numv(s.hours) || 182, small: numv(s.small) || 50, approve: numv(s.approve) || 500, savings: Math.max(0, numv(s.savings)), autoBk: s.autoBk !== false, updatedAt: okStr(s.updatedAt) ? s.updatedAt : d.updatedAt };
+}
+function dedupeNat(arr, keyFn) {
+  const seen = new Map();
+  for (const x of arr) {
+    if (x.deleted) continue; const k = keyFn(x), o = seen.get(k);
+    if (!o) { seen.set(k, x); continue; }
+    const [keep, drop] = o.id < x.id ? [o, x] : [x, o]; drop.deleted = true; drop.updatedAt = '9999-12-31T00:00:00.000Z'; seen.set(k, keep);
+  }
+}
+let loadFailed = false;
+function load() {
+  try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); } catch (e) { storageOK = false; }
+  let r = null;
+  try { r = localStorage.getItem(KEY); } catch (e) { storageOK = false; }
+  if (r) {
+    const o = parseState(r);
+    if (o) return o;
+    loadFailed = true; try { localStorage.setItem(KEY + '_corrupt_' + Date.now(), r); } catch (_) { }
+  }
+  return defaults();
+}
+function parseState(r) {
+  if (!r || typeof r !== 'string') return null;
+  try {
+    const o = Object.assign(defaults(), JSON.parse(r));
+    o.settings = cleanSettings(o.settings); o.tx = cleanArr(o.tx, 'tx'); o.incomes = cleanArr(o.incomes, 'inc'); o.fixed = cleanArr(o.fixed, 'fix'); o.lumps = cleanArr(o.lumps, 'lump');
+    if (!o.flags || typeof o.flags !== 'object') o.flags = { sub: {} }; if (!o.flags.sub) o.flags.sub = {};
+    if (!o.rules || typeof o.rules !== 'object') o.rules = {}; if (!o.meeting) o.meeting = { last: null, decision: '' };
+    if (!o.lastUsed) o.lastUsed = { who: 0, method: 'card' }; if (!o.dismissed) o.dismissed = {};
+    if (!okStr(o.savedAt)) o.savedAt = null; if (!okStr(o.lastAutoBk)) o.lastAutoBk = null; if (!okStr(o.embeddedSeen)) o.embeddedSeen = null;
+    return o;
+  } catch (e) { return null; }
+}
+function save() {
+  CACHE = {};
+  S.savedAt = nowISO(); S.rev = (S.rev | 0) + 1;
+  let json = ''; try { json = JSON.stringify(S); } catch (e) { return; }
+  try { localStorage.setItem(KEY, json); } catch (e) { storageOK = false; }
+  try { if (typeof mirrorSave === 'function') mirrorSave(json); } catch (e) { }
+}
+const live = a => a.filter(x => !x.deleted);
+const txLive = () => live(S.tx);
+const names = () => S.settings.names;
+const whoName = w => w === 2 ? 'שנינו' : names()[w] || '?';
+
+/* ================= merge (sync between phones) ================= */
+function mergeArr(a, b) {
+  const m = new Map(a.map(x => [x.id, x]));
+  for (const x of b || []) { const o = m.get(x.id); if (!o || (x.updatedAt || '') > (o.updatedAt || '')) m.set(x.id, x); }
+  return [...m.values()];
+}
+function exportText(quiet) {
+  if (!quiet) { S.lastBackup = nowISO(); save(); }
+  return JSON.stringify({ app: 'hakesef-shelanu', v: 1, exported: nowISO(), by: myName(), device: me(), data: { ...S, pin: undefined } });
+}
+function importMerge(text) {
+  let o; try { o = JSON.parse(String(text).trim()); } catch (e) { throw new Error('הקובץ לא נראה כמו גיבוי של האפליקציה'); }
+  const inc = o && o.app === 'hakesef-shelanu' && o.data && typeof o.data === 'object' ? o.data : null;
+  if (!inc) throw new Error('הקובץ לא נראה כמו גיבוי של האפליקציה');
+  const before = txLive().length;
+  const tx = mergeArr(S.tx, cleanArr(inc.tx, 'tx')), incs = mergeArr(S.incomes, cleanArr(inc.incomes, 'inc')),
+    fx = mergeArr(S.fixed, cleanArr(inc.fixed, 'fix')), lu = mergeArr(S.lumps, cleanArr(inc.lumps, 'lump'));
+  S.tx = tx; S.incomes = incs; S.fixed = fx; S.lumps = lu;
+  dedupeNat(S.incomes, x => x.name + '|' + x.amount + '|' + x.who); dedupeNat(S.fixed, x => x.name + '|' + x.amount + '|' + x.cat); dedupeNat(S.lumps, x => x.name + '|' + x.amountYear);
+  if (inc.rules && typeof inc.rules === 'object') for (const [k, v] of Object.entries(inc.rules)) if (okStr(v) && !Object.prototype.hasOwnProperty.call(S.rules, k)) S.rules[k] = v;
+  const fs = (inc.flags && inc.flags.sub && typeof inc.flags.sub === 'object') ? inc.flags.sub : {};
+  S.flags = { sub: Object.assign({}, fs, S.flags.sub || {}) };
+  if (inc.settings && okStr(inc.settings.updatedAt) && inc.settings.updatedAt > S.settings.updatedAt) { const myMe = S.settings.me; S.settings = cleanSettings(inc.settings); S.settings.me = myMe; }
+  if (inc.onboarded) S.onboarded = true;
+  CACHE = {}; save();
+  return txLive().length - before;
+}
+
+/* ================= calc ================= */
+const incomeTotal = () => sum(live(S.incomes).map(x => +x.amount || 0));
+const fixedList = () => live(S.fixed).filter(x => x.active !== false);
+const fixedTotal = () => sum(fixedList().map(x => +x.amount || 0));
+const lumpsMonthly = () => sum(live(S.lumps).map(x => (+x.amountYear || 0) / 12));
+const curKey = () => cycleStart(today(), S.settings.payday);
+function instCharge(t, key) {
+  if (!(t.inst > 1)) return 0;
+  const k = monthIdx(key) - monthIdx(cycleStart(t.date, S.settings.payday));
+  return k >= 0 && k < t.inst ? t.amt / t.inst : 0;
+}
+function cycleKeys() {
+  const cur = curKey(); let first = cur;
+  for (const t of txLive()) { const k = cycleStart(t.date, S.settings.payday); if (k < first) first = k; }
+  const out = []; let k = first; for (let n = 0; k <= cur && n < 600; n++) { out.push(k); k = addM(k, 1); } return out;
+}
+function cs(key) {
+  if (CACHE[key]) return CACHE[key];
+  const end = cycleEnd(key), days = diffD(key, end);
+  const income = incomeTotal(), fixed = fixedTotal(), lumps = lumpsMonthly(), savings = +S.settings.savings || 0;
+  const varTx = [], instTx = [], byCat = {}; let varSpent = 0, inst = 0;
+  for (const t of txLive()) {
+    if (t.inst > 1) {
+      const c = instCharge(t, key);
+      if (c > 0) { inst += c; instTx.push({ t, c }); byCat[t.cat] = (byCat[t.cat] || 0) + c; }
+    } else if (t.date >= key && t.date < end) { varTx.push(t); varSpent += t.amt; byCat[t.cat] = (byCat[t.cat] || 0) + t.amt; }
+  }
+  const cashBuys = sum(varTx.filter(t => t.method === 'cash' && t.cat !== 'cash').map(t => t.amt));
+  const cashW = byCat.cash || 0, cov = Math.min(cashW, cashBuys); varSpent -= cov; if (cashW) byCat.cash = cashW - cov;
+  const budget = income - fixed - lumps - savings - inst;
+  const outAll = fixed + lumps + savings + inst + varSpent;
+  return CACHE[key] = { key, end, days, income, fixed, lumps, savings, inst, varTx, instTx, byCat, varSpent, budget, remaining: budget - varSpent, gap: income - outAll };
+}
+function progress(c) {
+  const t = today();
+  const el = Math.min(c.days, Math.max(0, diffD(c.key, t) + 1));
+  return { el, frac: Math.max(el, 1) / c.days, left: Math.max(1, diffD(t, c.end)) };
+}
+function firstTxDate() { let f = null; for (const t of txLive()) if (!f || t.date < f) f = t.date; return f; }
+function closedKeys() {
+  const keys = cycleKeys(), cur = curKey(), f = firstTxDate();
+  return keys.filter((k, i) => k < cur && !(i === 0 && f && f > addD(k, 7)));
+}
+function detectRecurring() {
+  const g = {};
+  for (const t of txLive()) {
+    if (t.inst > 1) continue;
+    const nm = (t.note || '').trim().toLowerCase();
+    if (!(t.cat === 'subs' || (nm && (t.cat === 'other' || t.cat === 'fun')))) continue;
+    const key = nm ? 'n:' + nm : `c:${t.cat}:${Math.round(t.amt)}`;
+    (g[key] = g[key] || []).push(t);
+  }
+  const res = [];
+  for (const [key, arr] of Object.entries(g)) {
+    if (arr.length < 2) continue;
+    arr.sort((a, b) => a.date < b.date ? -1 : 1);
+    const gaps = []; for (let i = 1; i < arr.length; i++) gaps.push(diffD(arr[i - 1].date, arr[i].date));
+    const med = median(gaps), mad = median(gaps.map(x => Math.abs(x - med)));
+    const am = median(arr.map(t => t.amt));
+    const stable = arr.every(t => Math.abs(t.amt - am) / am <= 0.12);
+    if (med >= 26 && med <= 35 && mad <= 4 && stable) {
+      const last = arr[arr.length - 1];
+      res.push({ key, name: last.note || catById(last.cat).n, cat: last.cat, amt: am, count: arr.length, last: last.date });
+    }
+  }
+  return res;
+}
+function subsList() {
+  const out = [];
+  const fixedNames = [];
+  for (const f of fixedList().filter(x => x.sub)) { out.push({ key: 'f:' + f.id, name: f.name, amt: +f.amount, src: 'קבוע' }); fixedNames.push(f.name.toLowerCase()); }
+  for (const d of detectRecurring()) {
+    if (fixedNames.some(n => n && (d.name.toLowerCase().includes(n) || n.includes(d.name.toLowerCase())))) continue;
+    if (d.last < addD(today(), -45)) continue;
+    out.push({ key: 'd:' + d.key, name: d.name, amt: d.amt, src: `זוהה (${d.count} חיובים)` });
+  }
+  return out;
+}
+const median3 = a => median(a);
+
+/* leak engine */
+const dayCov = c => new Set(c.varTx.map(t => t.date)).size / c.days;
+function activeClosed() { return closedKeys().filter(k => dayCov(cs(k)) >= 0.35).slice(-3); }
+function perCycle(fn) {
+  const closed = activeClosed();
+  if (closed.length) return { v: sum(closed.map(k => fn(cs(k)))) / closed.length, low: false };
+  const c = cs(curKey()), f = firstTxDate(); if (!f) return null;
+  const span = diffD(f > c.key ? f : c.key, today()) + 1;
+  return span >= 14 ? { v: fn(c) / (span / c.days), low: true } : null;
+}
+const realistic = y => Math.round(y * 0.25 / 100) * 100;
+const pickHole = L => L.haveData ? L.items.find(i => i.kind === 'data' && i.yearly) : null;
+function computeLeaks() {
+  const items = [], anomalies = [], st = S.settings, income = incomeTotal();
+  const cur = cs(curKey()), prog = progress(cur);
+  const closed = activeClosed();
+  const f0 = firstTxDate();
+  const haveData = txLive().length >= 12 && !!f0 && diffD(f0, today()) >= 6;
+  const small = +st.small || 50;
+  const addData = (id, icon, title, o, min, why, act, extra) => {
+    if (!o || o.v < min) return;
+    items.push(Object.assign({ id, icon, title, yearly: o.v * 12, save: realistic(o.v * 12), low: o.low, kind: 'data', why: why(o.v), act }, extra || {}));
+  };
+  // gap vs deficit
+  const gc = closedKeys().map(cs).filter(c => c.varTx.length >= 20 && dayCov(c) >= 0.5).slice(-3);
+  if (gc.length >= 2 && income > 0) {
+    const g = sum(gc.map(c => c.gap)) / gc.length;
+    if (g < -Math.max(250, income * 0.03)) items.push({ id: 'deficit', icon: '🚨', title: 'ההוצאות עולות על ההכנסה', yearly: null, kind: 'structure', rank: 0, why: `בממוצע ${moneyT(-g)} בחודש יותר ממה שנכנס, לפי מה שרשמתם. המימון בא מהמינוס, מחיסכון או מהכנסה שלא הוזנה.`, act: 'בדקו שכל ההכנסות הוזנו (קצבאות, שעות נוספות). אם כן, זה הממצא הראשון לטפל בו.' });
+    else if (g > Math.max(500, income * 0.05)) items.push({ id: 'gap', icon: '🧾', title: 'הכנסה שלא הוסברה', yearly: null, monthly: g, kind: 'doc', why: `בממוצע ${moneyT(g)} בחודש (${Math.round(g / income * 100)}% מההכנסה) לא מופיעים ברישומים, בהוצאות הקבועות או בחיסכון. זה לא בהכרח כסף שאבד: אולי הוא נחסך, אולי חלק מהקניות לא נרשם.`, act: 'השוו את יתרת החשבון בתחילת החודש ובסופו. אם היא עלתה בערך בסכום הזה, הכסף נחסך. אם לא, חפשו מזומן והעברות שלא נרשמו.' });
+  }
+  const SKIP = new Set(['eatout', 'delivery', 'cash', 'fees', 'subs']);
+  addData('delivery', '🛵', 'משלוחים', perCycle(c => c.byCat.delivery || 0), 150, v => `${moneyT(v)} בחודש על משלוחים, לרוב יחד עם דמי משלוח ושירות.`, 'קבעו תקרה חודשית אחת למשלוחים והסכימו עליה ביחד, בלי אשמה.');
+  addData('eatout', '☕', 'אוכל וקפה בחוץ', perCycle(c => c.byCat.eatout || 0), 300, v => `${moneyT(v)} בחודש. לרוב לא ההוצאה הכי גדולה, אבל היא קלה לשינוי.`, 'בחרו ביחד מה באמת שווה לכם ומה הולך על אוטומט.');
+  const sc = perCycle(c => c.varTx.filter(t => t.amt < small && !SKIP.has(t.cat)).length);
+  addData('small', '🪙', `קניות קטנות (מתחת ל־₪${small})`, perCycle(c => sum(c.varTx.filter(t => t.amt < small && !SKIP.has(t.cat)).map(t => t.amt))), 250, v => `בערך ${Math.round(sc ? sc.v : 0)} קניות קטנות בחודש, ביחד ${moneyT(v)}. כל אחת נראית זניחה, וביחד הן סכום.`, 'בדקו אם אפשר לצמצם לשתיים בשבוע, או להחליף ברגל קבועה אחת.');
+  addData('fees', '🏦', 'עמלות וריבית', perCycle(c => c.byCat.fees || 0), 30, v => `${moneyT(v)} בחודש הולכים לבנק ולכרטיסי האשראי בלי לקנות כלום.`, 'בקשו מהבנק מסלול עמלות מוזל, ובדקו אם הלוואה קצרה זולה יותר ממינוס.');
+  addData('cash', '💵', 'משיכות מזומן', perCycle(c => c.byCat.cash || 0), 400, v => `${moneyT(v)} בחודש במזומן. אם אתם לא רושמים מה קניתם בו, זה פער בתיעוד.`, 'רשמו הוצאות במזומן בעשר שניות (בחירת "מזומן" באיך שילמו), או קבעו סכום קבוע בשבוע.');
+  const subs = subsList(), flags = S.flags.sub || {};
+  const subTot = sum(subs.map(s => s.amt));
+  const cancelTot = sum(subs.filter(s => flags[s.key] === 'cancel').map(s => s.amt));
+  if (subTot >= 100) items.push({ id: 'subs', icon: '📺', title: 'מנויים וחיובים חוזרים', yearly: subTot * 12, save: cancelTot ? cancelTot * 12 : realistic(subTot * 12), low: false, kind: 'data', sub: true, why: `${subs.length === 1 ? 'חיוב חוזר אחד' : subs.length + ' חיובים חוזרים'}, ביחד ${moneyT(subTot)} בחודש.`, act: cancelTot ? `סימנתם לביטול ${moneyT(cancelTot)} בחודש, כלומר ${moneyT(cancelTot * 12)} בשנה.` : 'עברו על הרשימה למטה וסמנו מה לא משתמשים בו.' });
+  let instRemain = 0, instMonths = 0;
+  for (const t of txLive()) if (t.inst > 1) {
+    const k = monthIdx(curKey()) - monthIdx(cycleStart(t.date, st.payday)), rem = t.inst - 1 - k;
+    if (k >= 0 && rem > 0) { instRemain += rem * (t.amt / t.inst); instMonths = Math.max(instMonths, rem); }
+  }
+  if (income > 0 && cur.inst / income >= 0.1) items.push({ id: 'inst', icon: '🧮', title: 'תשלומים שכבר סגרתם מראש', yearly: null, kind: 'structure', why: `${moneyT(cur.inst)} בחודש (${Math.round(cur.inst / income * 100)}% מההכנסה) תפוסים בתשלומים.${instRemain > 0 ? ` נשארו עוד כ־${moneyT(instRemain)} על פני ${instMonths} חודשים.` : ' התשלום האחרון החודש.'}`, act: 'זו הוצאה שכבר הוחלט עליה. כדאי לא לפתוח תשלומים חדשים עד שזה יורד.' });
+  if (income > 0) {
+    const fr = (cur.fixed + cur.lumps) / income;
+    if (fr >= 0.55) items.push({ id: 'struct', icon: '🏗️', title: 'ההוצאות הקבועות גדולות', yearly: null, kind: 'structure', why: `הוצאות קבועות ושנתיות הן ${Math.round(fr * 100)}% מההכנסה נטו, ${moneyT(cur.fixed + cur.lumps)} בחודש. כשרוב הכסף קבוע, גם משמעת בסופר לא תשנה הרבה.`, act: 'פתחו את מסך התקציב ובדקו את שלוש הגדולות. שווה לבדוק מחדש ספקים וביטוחים.' });
+  }
+  const order = { data: 1, doc: 2, structure: 3 };
+  items.sort((a, b) => (a.rank === 0 ? -1 : b.rank === 0 ? 1 : 0) || (order[a.kind] - order[b.kind]) || ((b.yearly || 0) - (a.yearly || 0)));
+
+  // anomalies
+  if (closed.length >= 2) {
+    const frac = Math.max(prog.frac, 0.3);
+    for (const c of VCATS) {
+      const med = median(closed.map(k => cs(k).byCat[c.id] || 0)), curV = cur.byCat[c.id] || 0;
+      const proj = prog.frac >= 0.3 ? curV / frac : curV;
+      if (med > 0 && proj > med * 1.35 && proj - med >= 200 && curV >= 150) anomalies.push({ cat: c, med, cur: curV, proj });
+      else if (med === 0 && curV >= Math.max(300, income * 0.03)) anomalies.push({ cat: c, med: 0, cur: curV, proj: curV, isNew: true });
+    }
+    anomalies.sort((a, b) => (b.proj - b.med) - (a.proj - a.med));
+  }
+  // weekday + payday spike (big one-offs excluded from the spike)
+  const wk = [0, 0, 0, 0, 0, 0, 0], wkN = [0, 0, 0, 0, 0, 0, 0];
+  const keys = cycleKeys().filter(k => k >= (closed[0] || curKey()));
+  let first3 = 0, first3d = 0, rest = 0, restd = 0;
+  for (const k of keys) {
+    const c = cs(k), lastDay = k === curKey() ? Math.min(c.days, diffD(k, today()) + 1) : c.days;
+    for (const t of c.varTx) { wk[pd(t.date).getDay()] += t.amt; if (t.amt < st.approve) { if (diffD(k, t.date) < 3) first3 += t.amt; else rest += t.amt; } }
+    for (let i = 0; i < lastDay; i++) { wkN[pd(addD(k, i)).getDay()]++; if (i < 3) first3d++; else restd++; }
+  }
+  const spike = closed.length >= 3 && first3d && restd && rest > 0 ? (first3 / first3d) / (rest / restd) : null;
+  const catTot = {}, wcycles = closed.length ? closed.map(cs) : [cur];
+  for (const c of wcycles) for (const [k, v] of Object.entries(c.byCat)) catTot[k] = (catTot[k] || 0) + v;
+  const sorted = Object.entries(catTot).sort((a, b) => b[1] - a[1]), tot = sum(sorted.map(x => x[1]));
+  let acc = 0, n80 = 0; for (const [, v] of sorted) { acc += v; n80++; if (acc >= tot * 0.8) break; }
+  return { items, anomalies, subs, flags, subTot, cancelTot, wk, wkN, spike, sorted, tot, n80, haveData, closed, cur, prog, hist: closed.length };
+}
+
+/* categorization of imported lines */
+const KW = [
+  ['health', /סופר.?פארם|super.?pharm|מכבי|כללית|מאוחדת|בית מרקחת|פארם|רופא|מרפאה|קופת חולים/i],
+  ['delivery', /וולט|wolt|תן ביס|10bis|תנביס|משלוח|ten bis/i], ['eatout', /קפה|ארומה|גרג|רולדין|מסעדה|פיצה|מקדונלד|בורגר|שווארמה|פלאפל|קונדיטוריה|סושי|בייגל|cafe|coffee/i],
+  ['food', /שופרסל|רמי לוי|יוחננוף|ויקטורי|מגה|טיב טעם|אושר עד|סופר|מכולת|חצי חינם|יינות ביתן|שוק|קשת טעמים|am:pm/i],
+  ['transport', /פז|דלק|סונול|דור אלון|רב קו|רב-קו|gett|uber|חניה|חניון|כביש 6|פנגו|סלופארק|אגד|רכבת/i],
+  ['subs', /נטפליקס|netflix|spotify|ספוטיפיי|youtube|\bapple\b|google|icloud|disney|hbo|amazon prime|\byes\b|סטינג|sting|audible|chatgpt|openai/i],
+  ['home', /איקאה|ikea|\bace\b|הום סנטר|אייס|מחסני|עמינח|ביתילי|הנדימן/i], ['clothes', /זארה|zara|h&m|קסטרו|פוקס|שילב|גולף|טרמינל|renuar|רנואר|אמריקן איגל|נעלי/i],
+  ['fees', /עמלה|ריבית|דמי כרטיס|דמי ניהול|עמלת/i], ['cash', /כספומט|משיכת מזומן|משיכה/i],
+  ['kids', /צעצוע|toys|חוג|גן ילדים|צהרון|בייביליין|ילדים/i], ['fun', /קולנוע|סינמה|הופעה|תיאטרון|סינמטק|לונה פארק|בילוי/i]
+];
+function guessCat(merchant) {
+  const m = merchant.trim(); const key = m.toLowerCase().replace(/\s+/g, ' ');
+  if (Object.prototype.hasOwnProperty.call(S.rules, key)) return S.rules[key];
+  for (const [c, re] of KW) if (re.test(m)) return c;
+  return 'other';
+}
+const BIDI = /[‎‏‪-‮⁦-⁩﻿ ]/g;
+const clean = s => String(s).replace(BIDI, '').trim();
+function parseAmt(c) {
+  let s = clean(c).replace(/₪|ש"ח|ש״ח|NIS/gi, '').replace(/\s/g, '');
+  if (/^\d[\d.,]*-$/.test(s)) s = '-' + s.slice(0, -1);              // "55.00-"
+  if (/^-?\d{1,3}(\.\d{3})+,\d{1,2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.'); // 1.234,56
+  else if (/^-?\d+,\d{1,2}$/.test(s)) s = s.replace(',', '.');                              // 89,90
+  else s = s.replace(/,(?=\d{3}(\D|$))/g, '');                                              // 1,234.56
+  return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : null;
+}
+function parseDate(c) {
+  c = clean(c);
+  let m = c.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})(?:[ T]\d{1,2}:\d{2}.*)?$/), y, mo, d;
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; if (y < 100) y += 2000; }
+  else if ((m = c.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+  else return null;
+  const t = new Date(y, mo - 1, d, 12);
+  if (t.getFullYear() !== y || t.getMonth() !== mo - 1 || t.getDate() !== d) return null; // rejects 31/02
+  return ymd(t);
+}
+function splitCells(line) {
+  const noQ = line.replace(/"[^"]*"/g, '');
+  const delim = noQ.includes('\t') ? '\t' : noQ.includes(';') ? ';' : noQ.includes(',') ? ',' : null;
+  if (!delim) {   // pasted "12/10/2026  Shufersal  184.90" (spaces only)
+    const m = line.match(/^(\S+)\s+(.+?)\s+(\S+)$/); return m ? [m[1], m[2], m[3]] : [line];
+  }
+  const cells = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+    else if (ch === delim && !q) { cells.push(cur); cur = ''; } else cur += ch;
+  }
+  cells.push(cur); return cells.map(clean);
+}
+function parseImport(text) {
+  const rows = []; let col = null, skipped = 0;
+  const lines = text.split(/\r?\n/).map(clean).filter(Boolean);
+  for (const line of lines) {
+    const cells = splitCells(line);
+    if (!cells.some(c => parseDate(c))) {          // header? learn column positions
+      if (cells.some(c => /תאריך|date/i.test(c))) {
+        const f = re => cells.findIndex(c => re.test(c));
+        col = { d: f(/תאריך|date/i), m: f(/שם בית העסק|בית עסק|תיאור|פירוט|merchant|description/i),
+                a: (x => x >= 0 ? x : f(/סכום|amount/i))(f(/סכום חיוב|charge/i)) };
+      }
+      continue;
+    }
+    let date = null, amt = null, merch = '';
+    if (col && col.d >= 0 && col.a >= 0 && col.m >= 0 && cells.length > Math.max(col.d, col.a, col.m)) {
+      date = parseDate(cells[col.d]); amt = parseAmt(cells[col.a]); merch = cells[col.m];
+    } else for (const c of cells) {
+      if (!date && (date = parseDate(c))) continue; else date = date || null;
+      const n = parseAmt(c);
+      if (n != null) { if (!(Number.isInteger(n) && /^\d{4}$/.test(clean(c)))) amt = n; continue; } // skip 4-digit card suffix
+      if (/תשלום|מתוך/.test(c)) continue;
+      if (c.length > merch.length && /[A-Za-z֐-׿]/.test(c)) merch = c;
+    }
+    if (date && amt != null && merch) { if (amt > 0) rows.push({ date: date > today() ? today() : date, amt, merch: merch.slice(0, 80) }); else skipped++; }
+  }
+  rows.skipped = skipped; return rows;
+}
+
+
+/* ================= week & "why" analytics ================= */
+function periodTx(mode, ref) {
+  if (mode === 'week') { const ws = ref || weekStart(), we = addD(ws, 7); return { start: ws, end: we, tx: txLive().filter(t => t.date >= ws && t.date < we && !(t.inst > 1)), label: `${fmtShort(ws)} – ${fmtShort(addD(we, -1))}` }; }
+  const k = ref || curKey(), e = cycleEnd(k); return { start: k, end: e, tx: txLive().filter(t => t.date >= k && t.date < e && !(t.inst > 1)), label: cycleLabel(k) };
+}
+function pstats(mode, ref) {
+  const P = periodTx(mode, ref);
+  const spends = P.tx.filter(t => t.cat !== 'cash'), wd = P.tx.filter(t => t.cat === 'cash');
+  const byDay = Array(7).fill(0); for (const t of spends) byDay[pd(t.date).getDay()] += t.amt;
+  const byCat = {}; for (const t of spends) byCat[t.cat] = (byCat[t.cat] || 0) + t.amt;
+  const byWho = [0, 0, 0]; for (const t of spends) byWho[t.who] += t.amt;
+  const m = me();
+  const allowance = sum(wd.filter(t => (t.holder == null ? t.who : t.holder) === m).map(t => t.amt));
+  const myCash = sum(spends.filter(t => t.method === 'cash' && t.who === m).map(t => t.amt));
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  return { ...P, spends, wd, byDay, byCat, byWho, cats, total: sum(spends.map(t => t.amt)), allowance, myCash, allowLeft: allowance - myCash };
+}
+function prevRef(mode, ref) { return mode === 'week' ? addD(ref || weekStart(), -7) : addM(ref || curKey(), -1); }
+function whyInfo(mode, ref, cat) {
+  const P = pstats(mode, ref), items = P.spends.filter(t => t.cat === cat).sort((a, b) => b.amt - a.amt);
+  const prev = pstats(mode, prevRef(mode, ref)); const prevAmt = prev.byCat[cat] || 0;
+  const reasons = {}; for (const t of items) { const r = t.why || (t.note ? 'הערה' : 'בלי סיבה'); reasons[r] = (reasons[r] || 0) + t.amt; }
+  const byDay = Array(7).fill(0); for (const t of items) byDay[pd(t.date).getDay()] += t.amt;
+  const byWho = [0, 0, 0]; for (const t of items) byWho[t.who] += t.amt;
+  const amt = sum(items.map(t => t.amt));
+  return { cat, items, amt, n: items.length, big: items[0] || null, prevAmt, delta: amt - prevAmt, reasons: Object.entries(reasons).sort((a, b) => b[1] - a[1]), byDay, byWho, share: P.total ? amt / P.total : 0 };
+}
+/* ================= safe storage: localStorage + IndexedDB mirror + daily snapshots ================= */
+const SRC = (() => { try { return '<!doctype html>\n' + document.documentElement.outerHTML; } catch (e) { return ''; } })();
+const IDB = { ok: 'indexedDB' in window, db: null };
+function idbOpen() {
+  if (IDB.db) return Promise.resolve(IDB.db);
+  if (!IDB.ok) return Promise.reject(new Error('no idb'));
+  return new Promise((res, rej) => {
+    try {
+      const q = indexedDB.open('hakesef', 1);
+      q.onupgradeneeded = () => { q.result.createObjectStore('kv'); };
+      q.onsuccess = () => { IDB.db = q.result; res(IDB.db); };
+      q.onerror = () => rej(q.error); q.onblocked = () => rej(new Error('blocked'));
+    } catch (e) { rej(e); }
+  });
+}
+function idbReq(mode, fn) {
+  return idbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('kv', mode), st = tx.objectStore('kv'); const r = fn(st);
+    tx.oncomplete = () => res(r && r.result !== undefined ? r.result : undefined); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+  }));
+}
+const idbGet = k => idbReq('readonly', st => st.get(k));
+const idbSet = (k, v) => idbReq('readwrite', st => st.put(v, k));
+const idbDel = k => idbReq('readwrite', st => st.delete(k));
+const idbKeys = () => idbReq('readonly', st => st.getAllKeys());
+let mirrorT = null, mirrorOK = null;
+function mirrorSave(json) {
+  clearTimeout(mirrorT);
+  mirrorT = setTimeout(async () => {
+    try {
+      await idbSet('main', json);
+      const k = 'snap:' + today(); await idbSet(k, json);
+      const keys = (await idbKeys()).filter(x => typeof x === 'string' && x.startsWith('snap:')).sort();
+      for (const old of keys.slice(0, -14)) await idbDel(old);
+      mirrorOK = true;
+      const ent = { key: k, date: today(), n: txLive().length, savedAt: S.savedAt || '' };
+      SNAPS = [ent, ...(SNAPS || []).filter(x => x.key !== k)].slice(0, 14);
+    } catch (e) { mirrorOK = false; }
+  }, 400);
+}
+async function listSnapshots() {
+  try {
+    const keys = (await idbKeys()).filter(x => typeof x === 'string' && x.startsWith('snap:')).sort().reverse();
+    const out = [];
+    for (const k of keys) { const j = await idbGet(k); const o = parseState(j); if (o) out.push({ key: k, date: k.slice(5), n: o.tx.filter(t => !t.deleted).length, savedAt: o.savedAt || '' }); }
+    return out;
+  } catch (e) { return []; }
+}
+async function recoverFromMirror() {
+  if (!IDB.ok) return null;
+  let m = null; try { m = parseState(await idbGet('main')); } catch (e) { return null; }
+  if (!m) { const snaps = await listSnapshots(); if (!snaps.length) return null; try { m = parseState(await idbGet(snaps[0].key)); } catch (e) { return null; } if (!m) return null; }
+  const localEmpty = !S.savedAt || (!S.onboarded && !S.tx.length);
+  if (localEmpty || loadFailed || (m.savedAt || '') > (S.savedAt || '')) {
+    const before = S.tx.filter(t => !t.deleted).length;
+    if (localEmpty || loadFailed) { S = m; } else { importMerge(JSON.stringify({ app: 'hakesef-shelanu', v: 1, data: m })); }
+    CACHE = {}; save();
+    return { restored: true, n: S.tx.filter(t => !t.deleted).length - before };
+  }
+  return null;
+}
+async function wipeAll() {
+  try { localStorage.removeItem(KEY); } catch (e) { }
+  try { const keys = await idbKeys(); for (const k of keys) await idbDel(k); } catch (e) { }
+}
+/* ---- embedded data: a full copy of the app that carries its own data ---- */
+function strHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+function absorbEmbedded() {
+  const em = document.getElementById('hk' + 'data'); if (!em) return null;
+  const txt = em.textContent || ''; if (!txt.trim()) return null;
+  const h = strHash(txt); if (S.embeddedSeen === h) return null;
+  try { const n = importMerge(txt); S.embeddedSeen = h; save(); return { n }; } catch (e) { return null; }
+}
+function fullCopyHTML() {
+  if (!SRC) return '';
+  let src;
+  const TAG = 'hk' + 'data';
+  src = SRC.replace(new RegExp('<script id="' + TAG + '"[^>]*>[\\s\\S]*?<\\/script>\\s*', 'i'), '');
+  const json = exportText(true).replace(/</g, '\\u003c');
+  const block = '<script id="' + TAG + '" type="application/json">' + json + '<' + '/script>\n';
+  const i = src.lastIndexOf('</body>');
+  return i > 0 ? src.slice(0, i) + block + src.slice(i) : src + block;
+}
+function memoryStatus() {
+  const snaps = SNAPS || [];
+  const parts = [storageOK ? 'זיכרון הדפדפן ✓' : 'זיכרון הדפדפן ✗', mirrorOK === false ? 'מאגר פנימי ✗' : IDB.ok ? 'מאגר פנימי ✓' : 'מאגר פנימי —', snaps.length ? `${snaps.length} עותקים יומיים` : 'עותקים יומיים: עוד אין'];
+  return parts.join(' · ');
+}
+let SNAPS = null;
+async function refreshSnaps() { SNAPS = await listSnapshots(); }
+async function openRestore() {
+  await refreshSnaps();
+  const rows = (SNAPS || []).map(s => `<button class="item" data-act="restoresnap" data-key="${esc(s.key)}"><span class="ico">🗓️</span><span class="t"><b>${esc(fmtShort(s.date))}</b><small>${s.n} הוצאות${s.savedAt ? ' · נשמר ' + new Date(s.savedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : ''}</small></span>${I.chev}</button>`).join('');
+  openSheet(`<h2>הזיכרון הבטוח<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">כל שמירה נכתבת ב־3 מקומות בטלפון: זיכרון הדפדפן, מאגר פנימי נפרד, ועותק יומי (נשמרים 14 הימים האחרונים). אם הדפדפן מוחק את הזיכרון, האפליקציה משחזרת לבד מהמאגר. בנוסף נשמר קובץ גיבוי אוטומטי לתיקיית ההורדות.</p>
+  <div class="card mt"><b>מצב עכשיו</b><p class="mini">${esc(memoryStatus())}</p><p class="mini">גיבוי אוטומטי להורדות: ${S.lastAutoBk ? new Date(S.lastAutoBk).toLocaleDateString('he-IL') : 'עוד לא'} · גיבוי שנשלח החוצה: ${S.lastBackup ? new Date(S.lastBackup).toLocaleDateString('he-IL') : 'עוד לא'}</p></div>
+  <div class="card"><b>עותקים יומיים</b><p class="mini">שחזור מעותק רק מוסיף מה שחסר, ולא מוחק כלום.</p><div class="list mt">${rows || '<div class="empty">עוד אין עותקים. הם נוצרים אוטומטית עם כל שמירה.</div>'}</div></div>`);
+}
+async function restoreSnap(key) {
+  try { const j = await idbGet(key); const o = parseState(j); if (!o) throw new Error('העותק פגום'); const n = importMerge(JSON.stringify({ app: 'hakesef-shelanu', v: 1, data: o })); closeSheet(); render(); toast(n > 0 ? `שוחזרו ${n} רישומים` : 'הכל כבר קיים, אין מה לשחזר'); }
+  catch (e) { toast(e.message || 'השחזור נכשל'); }
+}
+let INCOG = false;
+async function detectIncognito() {
+  try { if (!navigator.storage || !navigator.storage.estimate) return; const e = await navigator.storage.estimate(); if (e && e.quota && e.quota < 150 * 1024 * 1024) { INCOG = true; render(); } } catch (e) { }
+}
+/* ---- automatic backup file to the phone's Downloads folder ---- */
+function maybeAutoBackup() {
+  if (ART || !storageOK || location.protocol === 'about:') return;
+  if (S.settings.autoBk === false || txLive().length < 5) return;
+  const last = S.lastAutoBk ? new Date(S.lastAutoBk) : null;
+  const due = !last || (Date.now() - last) / 864e5 >= 7 || cycleStart(today(), S.settings.payday) > cycleStart(S.lastAutoBk.slice(0, 10), S.settings.payday);
+  if (!due) return;
+  setTimeout(() => { try { downloadFile(`hakesef-backup-${today()}.txt`, exportText(true), 'text/plain;charset=utf-8'); S.lastAutoBk = nowISO(); save(); toast('גיבוי אוטומטי נשמר בתיקיית ההורדות'); } catch (e) { } }, 1500);
+}
+
+/* ================= cash: ATM withdrawals and the wallet ================= */
+function cashStats(key, ws) {
+  let inRange;
+  if (ws) { const we = addD(ws, 7); inRange = t => t.date >= ws && t.date < we; }
+  else { const end = key ? cycleEnd(key) : null; inRange = t => !key || (t.date >= key && t.date < end); }
+  const all = txLive();
+  const wd = all.filter(t => t.cat === 'cash'), sp = all.filter(t => t.method === 'cash' && t.cat !== 'cash');
+  const wdC = wd.filter(inRange), spC = sp.filter(inRange);
+  const by = [0, 0, 0], toBy = [0, 0, 0]; for (const t of wdC) { by[t.who] += t.amt; toBy[t.holder == null ? t.who : t.holder] += t.amt; }
+  const wallet = [0, 0, 0]; for (const t of wd) wallet[t.holder == null ? t.who : t.holder] += t.amt; for (const t of sp) wallet[t.who] -= t.amt;
+  const wdSum = sum(wdC.map(t => t.amt)), spSum = sum(spC.map(t => t.amt));
+  return { wdC, spC, by, toBy, wdSum, spSum, wallet, gap: Math.max(0, wdSum - spSum) };
+}
+function cashCard() {
+  const k = cashStats(curKey());
+  if (!k.wdC.length && !k.spC.length) return `<div class="sec"><button class="card" style="width:100%;text-align:start;display:block" data-act="gocash"><b>💵 משיכות מהכספומט</b><p class="mini mt">רשמו כל משיכה (מאיזה חשבון), ואז כל קנייה במזומן. כך רואים כמה מזומן "נעלם" בלי תיעוד.</p><p class="mt"><span class="btn ghost sm">+ רישום משיכה</span></p></button></div>`;
+  const n = names();
+  return `<div class="sec"><button class="card" style="width:100%;text-align:start;display:block" data-act="gocash"><div class="row"><b>💵 מזומן החודש</b><small class="mini">לפרטים ›</small></div>
+  <div class="stats mt"><div class="stat"><b>${money(k.wdSum)}</b><span>משכתם</span></div><div class="stat"><b>${money(k.spSum)}</b><span>רשמתם במזומן</span></div><div class="stat"><b style="color:${k.gap > 0 ? 'var(--leak)' : 'var(--ok)'}">${money(k.gap)}</b><span>לא מוסבר</span></div></div>
+  <p class="mini mt">${k.by[0] || k.by[1] || k.by[2] ? `מהחשבון של ${esc(n[0])}: ${money(k.by[0])} · ${esc(n[1])}: ${money(k.by[1])}${k.by[2] ? ' · משותף: ' + money(k.by[2]) : ''}` : ''}${k.wallet > 0 ? ` · בארנק בערך ${money(k.wallet)}` : ''}</p></button></div>`;
+}
+function viewCash() {
+  const k = cashStats(curKey()), n = names();
+  const row = t => txRow(t, null, true);
+  return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div>${back()}<h1>מזומן</h1><div class="cyc">משיכות מהכספומט ומה נעשה בהן · ${cycleLabel(curKey())}</div></div></div></header>
+  <div class="sec" style="padding-top:14px"><div class="card"><div class="kv"><span>משכתם החודש</span><b>${money(k.wdSum)}</b></div><div class="kv"><span>מהחשבון של ${esc(n[0])}</span><b>${money(k.by[0])}</b></div><div class="kv"><span>מהחשבון של ${esc(n[1])}</span><b>${money(k.by[1])}</b></div>${k.by[2] ? `<div class="kv"><span>מחשבון משותף</span><b>${money(k.by[2])}</b></div>` : ''}<div class="kv"><span>נמסר ל${esc(n[0])} / ל${esc(n[1])}</span><b>${money(k.toBy[0])} / ${money(k.toBy[1])}</b></div><div class="kv"><span>קניות שנרשמו במזומן</span><b>${money(k.spSum)}</b></div><div class="kv" style="font-size:17px"><span><b>מזומן לא מוסבר החודש</b></span><b style="color:${k.gap > 0 ? 'var(--leak)' : 'var(--ok)'}">${money(k.gap)}</b></div></div>
+  <p class="mini mt">${k.gap > 0 ? 'זה כסף שיצא מהבנק ואין לו תיעוד. או שהוא עדיין בארנק, או שנקנה בו משהו שלא נרשם. כל קנייה במזומן נרשמת בפלוס הצהוב עם "מזומן" ב"איך שילמו".' : 'כל המזומן שנמשך החודש מתועד. יפה.'}${k.wallet[0] > 0 || k.wallet[1] > 0 ? ` בארנק של ${esc(n[0])} אמור להיות בערך ${money(Math.max(0, k.wallet[0]))}, ושל ${esc(n[1])} בערך ${money(Math.max(0, k.wallet[1]))} (משיכות שנמסרו פחות קניות במזומן, מאז ההתחלה).` : ''}</p>
+  <button class="btn coin block mt" data-act="addcash">💵 רישום משיכה מהכספומט</button></div>
+  <div class="sec"><h2>משיכות החודש</h2><div class="list">${k.wdC.slice().sort((a, b) => b.date.localeCompare(a.date)).map(row).join('') || '<div class="empty">אין עדיין משיכות החודש</div>'}</div></div>
+  <div class="sec"><h2>קניות במזומן החודש</h2><div class="list">${k.spC.slice().sort((a, b) => b.date.localeCompare(a.date)).map(row).join('') || '<div class="empty">אין עדיין קניות במזומן החודש</div>'}</div></div>`;
+}
+function openAddCash() {
+  const d = newDraft(); d.cat = 'cash'; d.method = 'bank'; d.who = S.lastCashWho ?? d.who; d.holder = S.lastCashHolder ?? me();
+  D = d; openSheet('<div id="addbody"></div>', { full: true }); drawAdd();
+}
+/* ================= demo data (clearly marked, removable) ================= */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function makeDemo() {
+  const R = mulberry32(11), r = (a, b) => a + R() * (b - a), ri = (a, b) => Math.round(r(a, b)), pick = a => a[Math.floor(R() * a.length)];
+  const stamp = nowISO(), P = S.settings.payday;
+  if (!live(S.incomes).length) {
+    S.incomes.push({ id: uid(), name: 'משכורת ' + names()[0], amount: 14200, who: 0, updatedAt: stamp, demo: true }, { id: uid(), name: 'משכורת ' + names()[1], amount: 11300, who: 1, updatedAt: stamp, demo: true });
+  }
+  if (!live(S.fixed).length) {
+    const F = [['שכר דירה', 5400, 'housing'], ['ארנונה', 780, 'bills'], ['חשמל', 430, 'bills'], ['מים וגז', 190, 'bills'], ['אינטרנט וטלוויזיה', 160, 'comms'], ['סלולר x2', 120, 'comms'], ['ביטוחים', 640, 'insur'], ['צהרון', 1500, 'edu'], ['החזר הלוואה', 900, 'loan']];
+    F.forEach(([n, a, c]) => S.fixed.push({ id: uid(), name: n, amount: a, cat: c, who: 2, sub: false, active: true, updatedAt: stamp, demo: true }));
+    [['Netflix', 49, 'subs'], ['Spotify', 22, 'subs'], ['Disney+', 35, 'subs']].forEach(([n, a, c]) => S.fixed.push({ id: uid(), name: n, amount: a, cat: c, who: 2, sub: true, active: true, updatedAt: stamp, demo: true }));
+  }
+  if (!live(S.lumps).length) {
+    [['ביטוח וטסט לרכב', 6000], ['חופשה', 9000], ['חגים ומתנות', 4800]].forEach(([n, a]) => S.lumps.push({ id: uid(), name: n, amountYear: a, updatedAt: stamp, demo: true }));
+  }
+  S.settings.savings = S.settings.savings || 600;
+  const add = (date, amt, cat, who, method, note, inst) => {
+    if (date > today()) return;
+    S.tx.push({ id: uid(), date, amt: Math.round(amt * 10) / 10, cat, who, method: method || 'card', note: note || '', inst: inst || 0, updatedAt: stamp, demo: true });
+  };
+  const start = addM(curKey(), -4), n = diffD(start, today());
+  for (let i = 0; i <= n; i++) {
+    const d = addD(start, i), dt = pd(d), dow = dt.getDay(), off = diffD(cycleStart(d, P), d);
+    const spike = off < 3 ? 1.7 : 1;
+    if (i % 3 === 0 || R() < .2) add(d, ri(120, 380) * spike, 'food', 2, 'card', '');
+    if (R() < .58) add(d, ri(14, 29), 'eatout', R() < .5 ? 0 : 1, 'card', 'קפה');
+    if (R() < (dow === 4 || dow === 5 ? .55 : .22)) add(d, ri(68, 140), 'delivery', pick([0, 1, 2]), 'card', 'וולט');
+    if (dow === 0 || dow === 3) add(d, ri(180, 300), 'transport', 0, 'card', 'דלק');
+    if (R() < .16) add(d, ri(35, 160), 'kids', 2, 'card', '');
+    if (R() < .09) add(d, ri(40, 210), 'health', pick([0, 1]), 'card', 'סופר פארם');
+    if (R() < .05 * spike) add(d, ri(120, 420), 'clothes', pick([0, 1]), 'card', '');
+    if (R() < .07 * spike) add(d, ri(60, 300), 'home', 2, 'card', '');
+    if ((dow === 5 || dow === 6) && R() < .4) add(d, ri(90, 260), 'fun', 2, 'card', '');
+    if (R() < .035) add(d, pick([300, 400, 500]), 'cash', pick([0, 1]), 'cash', 'כספומט');
+    if (R() < .06) add(d, ri(15, 45), 'other', pick([0, 1]), 'card', '');
+    const dm = dt.getDate();
+    if (dm === 3) add(d, 49, 'subs', 2, 'card', 'Netflix');
+    if (dm === 14) add(d, 22, 'subs', 2, 'card', 'Spotify');
+    if (dm === 20) add(d, 55, 'subs', 0, 'card', 'Headspace');
+    if (dm === 25) add(d, 11, 'subs', 1, 'card', 'iCloud');
+    if (dm === 28) add(d, 33, 'fees', 2, 'bank', 'עמלות בנק');
+    if (dm === 12 && R() < .8) add(d, ri(120, 220), 'fees', 2, 'bank', 'ריבית מינוס');
+  }
+  const fr = addD(addM(curKey(), -3), 4);
+  add(fr, 3600, 'home', 2, 'card', 'מקרר', 12);
+  S.demo = true;
+}
+function clearDemo() {
+  const stamp = nowISO();
+  for (const k of ['tx', 'incomes', 'fixed', 'lumps']) S[k] = S[k].map(x => x.demo ? { ...x, deleted: true, updatedAt: stamp } : x);
+  S.demo = false; save();
+}
+/* ================= views ================= */
+const I = {
+  home: '<svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
+  leak: '<svg viewBox="0 0 24 24"><path d="M12 3c3.5 4.2 6 7.3 6 10.6A6 6 0 0 1 6 13.6C6 10.3 8.5 7.2 12 3z"/><path d="M9.5 14.5a2.6 2.6 0 0 0 2.5 2"/></svg>',
+  list: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+  chev: '<svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>'
+};
+let TAB = 'home', SUB = null;
+const T = { q: '', who: 'all', key: null };
+
+function view() {
+  const v = { home: viewHome, leaks: viewLeaks, tx: viewTx, more: viewMore }[TAB];
+  return v();
+}
+function render() {
+  const sy = window.scrollY;
+  $('#view').innerHTML = view();
+  $$('#tabs .tab').forEach(b => b.setAttribute('aria-current', b.dataset.tab === TAB ? 'page' : 'false'));
+  const L = TAB === 'leaks' ? null : null;
+  window.scrollTo(0, sy);
+}
+function go(tab, sub) { TAB = tab; SUB = sub || null; if (tab === 'tx') T.key = T.key || curKey(); render(); window.scrollTo(0, 0); }
+
+/* ---------- bucket ---------- */
+function bucketSVG(level, pace, leaking) {
+  const top = 34, bot = 226, H = bot - top, y = top + (1 - level) * H, yp = top + (1 - pace) * H;
+  const path = 'M36 34 H204 L188 214 Q186 226 174 226 H66 Q54 226 52 214 Z';
+  const wave = 'M0 8 Q30 0 60 8 T120 8 T180 8 T240 8 T300 8 T360 8 T420 8 T480 8 V60 H0 Z';
+  return `<svg viewBox="0 0 240 250" role="img" aria-label="דלי המשכורת: ${Math.round(level * 100)}% מלא">
+  <defs><clipPath id="bk"><path d="${path}"/></clipPath>
+  <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6FD0DA"/><stop offset="1" stop-color="#1B9AAA"/></linearGradient></defs>
+  <path d="M52 34 Q120 -24 188 34" fill="none" stroke="#9BB5BA" stroke-width="5" stroke-linecap="round"/>
+  <path d="${path}" fill="rgba(155,181,186,.12)"/>
+  <g clip-path="url(#bk)">
+    <rect x="0" y="${y + 4}" width="240" height="${Math.max(0, bot - y + 4)}" fill="url(#wg)"/>
+    <g transform="translate(0,${y - 6})"><path class="wave2" d="${wave}" fill="#6FD0DA" opacity=".55"/><path class="wave1" d="${wave}" fill="#1B9AAA" opacity=".9" transform="translate(-60,3)"/></g>
+  </g>
+  <path d="${path}" fill="none" stroke="#9BB5BA" stroke-width="5" stroke-linejoin="round"/>
+  <line x1="24" x2="208" y1="${yp}" y2="${yp}" stroke="#F5B82E" stroke-width="2.6" stroke-dasharray="7 5" stroke-linecap="round"/>
+  <text x="212" y="${yp - 6}" font-size="14" fill="#8A6500" font-family="Rubik,system-ui" font-weight="600">קצב</text>
+  ${leaking ? '<circle class="drip" cx="70" cy="233" r="4.2" fill="#1B9AAA"/><circle class="drip d2" cx="80" cy="233" r="3.4" fill="#1B9AAA"/>' : ''}
+  </svg>`;
+}
+
+function paceChart(c, p) {
+  const W = 320, Hh = 110, pad = 6, n = c.days;
+  if (c.budget <= 0) return '';
+  const daily = new Array(n).fill(0);
+  for (const t of c.varTx) { const d = diffD(c.key, t.date); if (d >= 0 && d < n) daily[d] += t.amt; }
+  let acc = 0; const pts = [];
+  for (let i = 0; i < p.el; i++) { acc += daily[i]; pts.push([i, acc]); }
+  const maxY = Math.max(c.budget, acc) * 1.05;
+  const X = i => pad + (i / (n - 1)) * (W - pad * 2), Y = v => Hh - pad - (v / maxY) * (Hh - pad * 2);
+  const line = pts.map(([i, v], k) => `${k ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ');
+  const proj = p.el >= 7 ? acc / p.el * n : null;
+  const over = proj != null && proj > c.budget;
+  const area = pts.length ? line + ` L${X(pts[pts.length - 1][0]).toFixed(1)} ${Y(0)} L${X(0)} ${Y(0)} Z` : '';
+  return `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;display:block" role="img" aria-label="הוצאות מצטברות לעומת הקצב המומלץ">
+   <line x1="${X(0)}" y1="${Y(0)}" x2="${X(n - 1)}" y2="${Y(c.budget)}" stroke="#F5B82E" stroke-width="2" stroke-dasharray="6 5"/>
+   <line x1="${pad}" y1="${Y(c.budget)}" x2="${W - pad}" y2="${Y(c.budget)}" stroke="var(--line)" stroke-width="1"/>
+   ${pts.length ? `<path d="${area}" fill="${over ? 'var(--leak)' : 'var(--water)'}" opacity=".13"/><path d="${line}" fill="none" stroke="${over ? 'var(--leak)' : 'var(--water)'}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(pts[pts.length - 1][0])}" cy="${Y(acc)}" r="4.5" fill="${over ? 'var(--leak)' : 'var(--water)'}"/>` : ''}
+   ${proj != null ? `<line x1="${X(p.el - 1)}" y1="${Y(acc)}" x2="${X(n - 1)}" y2="${Y(Math.min(proj, maxY))}" stroke="${over ? 'var(--leak)' : 'var(--water)'}" stroke-width="2" stroke-dasharray="3 5" opacity=".7"/>` : ''}
+  </svg>${proj != null ? `<p class="mini" style="margin-top:6px">${over ? `בקצב הנוכחי תסיימו את החודש כ־${money(proj - c.budget)} מעל התקציב.` : `בקצב הנוכחי תסיימו את החודש עם כ־${money(c.budget - proj)} פנויים.`} הקו הצהוב הוא הקצב השווה.</p>` : ''}`;
+}
+
+const pl = (n, one, many) => n === 1 ? one : `${n} ${many}`;
+function banners() {
+  const d = S.dismissed || {}; const list = [];
+  if (INCOG) list.push(`<div class="banner"><span>🕶️</span><span><b>נראה שהקובץ נפתח במצב גלישה בסתר.</b> במצב הזה הכל נמחק כשסוגרים את Chrome, ואין "הוספה למסך הבית". פתחו את הקובץ ב־Chrome רגיל: ⋮ ← הורדות ← לחיצה על הקובץ.</span><button data-act="backup">גיבוי עכשיו</button></div>`);
+  if (!storageOK || loadFailed) list.push(`<div class="banner"><span>⚠️</span><span>${loadFailed ? 'הנתונים השמורים נפגמו, ולכן התחלתם מחדש (העותק הישן נשמר בדפדפן).' : 'הדפדפן לא מאפשר לשמור נתונים כרגע (מצב פרטי?). שלחו גיבוי לפני שסוגרים.'}</span></div>`);
+  if (location.protocol === 'file:' && !d.file) list.push(`<div class="banner info"><span>🛡️</span><span>הנתונים נשמרים בטלפון הזה ב־3 מקומות, ופעם בשבוע גם כקובץ בתיקיית ההורדות. בכל זאת, פעם בשבוע שלחו גיבוי בטלגרם.</span><button data-act="dis" data-k="file">הבנתי</button></div>`);
+  const iosSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator.standalone || matchMedia('(display-mode: standalone)').matches);
+  if (/^https?:$/.test(location.protocol) && iosSafari && !d.ios) list.push(`<div class="banner info"><span>📲</span><span>באייפון: לחצו על כפתור השיתוף ובחרו "הוסף למסך הבית", ואז עבדו רק מהאייקון. כך הנתונים נשמרים.</span><button data-act="dis" data-k="ios">הבנתי</button></div>`);
+  if (S.onboarded && !isStandalone() && !d.inst2) {
+    if (/^https?:$/.test(location.protocol)) list.push(`<div class="banner install"><span style="font-size:22px">📲</span><span>${isIOS() ? 'הוסיפו את "הכסף שלנו" למסך הבית, עם אייקון ₪ כמו כל אפליקציה.' : deferredInstall ? 'התקינו את "הכסף שלנו" כאפליקציה עם אייקון ₪ במסך הבית.' : 'הוסיפו למסך הבית: ⋮ למעלה ← "הוספה למסך הבית".'}</span><button data-act="${isIOS() ? 'ioshint' : deferredInstall ? 'installnow' : 'guide'}">${isIOS() ? 'איך' : deferredInstall ? 'התקנה' : 'איך'}</button><button data-act="dis" data-k="inst2" aria-label="לא עכשיו" style="padding:0 6px;opacity:.7">✕</button></div>`);
+    else if (!d.inst) list.push(`<div class="banner info"><span>📲</span><span>אייקון במסך הבית אפשרי דרך הקישור של האפליקציה, לא מהקובץ.</span><button data-act="guide">איך</button><button data-act="dis" data-k="inst" style="padding:0 6px">✕</button></div>`);
+  }
+  const lk = addM(curKey(), -1);
+  const left = Math.round((pd(cycleEnd(curKey())) - pd(today())) / 864e5);
+  if (S.onboarded && txLive().length >= 5 && left >= 1 && left <= 3 && !d['eom' + curKey()]) list.push(`<div class="banner info"><span>🗓️</span><span>החודש הכספי מסתיים ${left === 1 ? 'מחר' : `בעוד ${left} ימים`}. השלימו הוצאות שלא נרשמו, ובפתיחה הראשונה אחרי זה ייפתח הסיכום לבד.</span><button data-act="dis" data-k="eom${curKey()}">הבנתי</button></div>`);
+  if (txLive().length >= 5 && S.reportSeen !== lk && cs(lk).varTx.length >= 5) list.push(`<div class="banner info"><span>📄</span><span>הדוח של ${esc(cycleLabel(lk))} מוכן.</span><button data-act="report" data-key="${lk}">פתחו</button></div>`);
+  if (txLive().length >= 10) {
+    const days = S.lastBackup ? Math.floor((Date.now() - new Date(S.lastBackup)) / 864e5) : null;
+    if (days == null || days >= 7) list.push(`<div class="banner info"><span>💾</span><span>${days == null ? 'עוד לא עשיתם גיבוי.' : `עברו ${days} ימים מהגיבוי האחרון.`} שליחה לטלגרם לוקחת 5 שניות.</span><button data-act="backup">גבו</button></div>`);
+  }
+  if (S.demo) list.push(`<div class="banner info"><span>🧪</span><span>אלה נתוני דמו, כדי להראות איך זה נראה.</span><button data-act="cleardemo">מחקו והתחילו</button></div>`);
+  return list[0] || '';
+}
+function relDate(d) { const t = today(); return d === t ? 'היום' : d === addD(t, -1) ? 'אתמול' : fmtShort(d); }
+function txTime(t) { if (!t.at) return ''; const d = new Date(t.at); if (isNaN(d)) return ''; const ld = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; return ld === t.date ? d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : ''; }
+function txRow(t, key, withDate) {
+  const c = catById(t.cat);
+  const instNow = key && t.inst > 1 && t.date < key;
+  const amt = instNow ? instCharge(t, key) : t.amt;
+  const sub = [withDate ? relDate(t.date) : '', txTime(t), t.why, t.note, whoName(t.who), t.inst > 1 ? (instNow ? `תשלום מתוך ${t.inst}` : `${t.inst} תשלומים`) : '', t.talked ? '✓ דיברנו' : ''].filter(Boolean).join(' · ');
+  return `<button class="item" data-act="edittx" data-id="${esc(t.id)}"><span class="ico">${c.e}</span><span class="t"><b>${esc(c.n)}</b><small>${esc(sub)}</small></span><span class="a">${money(amt)}</span></button>`;
+}
+function holeBlock(top, clickable) {
+  const tag = top.low ? ' · הערכה ראשונית' : '';
+  const inner = `<small>החור הגדול כרגע${tag}</small><h2 style="margin-top:4px">${top.icon} ${esc(top.title)}</h2><div class="big">כ־<bdi class="num">${moneyT(top.yearly)}</bdi> בשנה</div><p>${esc(top.why)}</p><p style="margin-top:8px;font-weight:600">חיסכון ריאלי אם מצמצמים ברבע: כ־<bdi class="num">${moneyT(top.save)}</bdi> בשנה</p>`;
+  return clickable ? `<button class="holeHero" style="width:100%;text-align:start;display:block" data-act="goleaks">${inner}</button>` : `<div class="holeHero">${inner}</div>`;
+}
+
+
+/* ---------- leaks ---------- */
+function barsHTML(rows, fmt, max) {
+  const m = max || Math.max(1, ...rows.map(r => r.v));
+  return rows.map(r => `<div class="barRow"><span>${esc(r.l)}</span><div class="bar"><i style="width:${Math.min(100, r.v / m * 100)}%;${r.c ? `background:${r.c}` : ''}"></i></div><span class="v">${fmt ? fmt(r.v) : money(r.v)}</span></div>`).join('');
+}
+function leakCard(i, L) {
+  let extra = '';
+  if (i.sub) {
+    extra = `<div class="mt">` + L.subs.map(s => {
+      const f = L.flags[s.key];
+      return `<div style="padding:9px 0;border-top:1px dashed var(--line)"><div class="row2" style="margin-bottom:6px"><div><b>${esc(s.name)}</b><div class="mini">${esc(s.src)}</div></div><b style="flex:none">${money(s.amt)} <small>בחודש</small></b></div>
+      <div class="seg"><button aria-pressed="${f === 'keep'}" data-act="subflag" data-key="${esc(s.key)}" data-v="keep">שומרים</button><button aria-pressed="${f === 'cancel'}" data-act="subflag" data-key="${esc(s.key)}" data-v="cancel">מבטלים</button></div></div>`;
+    }).join('') + `</div>`;
+  }
+  const yr = i.yearly ? `<span class="y">כ־${money(i.yearly)} בשנה</span>` : i.monthly ? `<span class="y">כ־${money(i.monthly)} בחודש</span>` : '';
+  return `<div class="leak ${i.kind === 'structure' || i.kind === 'doc' ? 'struct' : ''}"><div class="top"><h3>${i.icon} ${esc(i.title)}</h3>${yr}</div>${i.low ? '<span class="tag">הערכה ראשונית</span>' : ''}<p>${esc(i.why)}</p><div class="act">💡 ${esc(i.act)}</div>${extra}</div>`;
+}
+function viewLeaks() {
+  const L = computeLeaks(); const c = L.cur;
+  const n = txLive().length; const days = firstTxDate() ? diffD(firstTxDate(), today()) + 1 : 0;
+  let h = `<header class="hero" style="padding-bottom:26px;border-radius:0 0 28px 28px;background:linear-gradient(165deg,#8E1F34,#C42F46 75%,#D9475C)"><div class="row"><div><h1>איפה הכסף דולף?</h1><div class="cyc">מגלה החורים: מה הכי משתלם לתקן</div></div></div></header>`;
+  if (!L.haveData) {
+    h += `<div class="sec"><div class="card empty"><div class="big">🔎</div><p><b>עוד מוקדם מדי</b></p><p>צריך לפחות שבוע של תיעוד (כ־12 רישומים) כדי להתחיל לראות דפוסים. יש ${pl(n, 'רישום אחד', 'רישומים')}, ${days <= 1 ? 'יום אחד' : days + ' ימים'}.</p><div class="bar mt"><i style="width:${Math.min(100, n / 12 * 100)}%"></i></div><p class="mt"><button class="btn coin" data-act="add">רשמו הוצאה</button></p><p class="mt mini">או הציצו איך זה נראה עם נתוני דמו: <button style="text-decoration:underline;font-weight:600;min-height:44px" data-act="demo">הציגו נתוני דמו</button></p></div></div>`;
+    return h;
+  }
+  const top = pickHole(L), def = L.items.find(i => i.id === 'deficit');
+  h += `<div class="sec">`;
+  if (top) h += holeBlock(top, false) + `<p class="mini mt">הסכומים הם הערכה לפי הממוצע החודשי שלכם, בהנחה שהתיעוד שלמים. לא כל חור צריך לסגור, אבל כדאי לדעת שהוא שם. ${L.hist ? `מבוסס על ${pl(L.hist, 'חודש מלא אחד', 'חודשים מלאים')} ו־${n} רישומים.` : ''}</p>`;
+  else if (def) h += `<div class="holeHero"><small>הממצא הראשון</small><h2 style="margin-top:4px">${def.icon} ${esc(def.title)}</h2><p>${esc(def.why)}</p></div>`;
+  else if (!L.items.length) h += `<div class="card empty"><div class="big">👏</div><p><b>לא זוהה חור גדול</b></p><p>לפי הנתונים עד עכשיו הכל נראה מאוזן. ככל שיצטברו חודשים הניתוח יתחדד.</p></div>`;
+  else h += `<div class="card"><b>לא זוהה חור בהוצאות המשתנות</b><p class="mini mt">יש ממצאים אחרים, מפורטים למטה.</p></div>`;
+  h += `</div>`;
+  const rest = L.items.filter(i => i !== top && i !== def);
+  if (rest.length) h += `<div class="sec"><h2>כל מה שנמצא</h2>${rest.map(i => leakCard(i, L)).join('')}</div>`;
+  h += `<div class="sec"><h2>חריגות החודש</h2>`;
+  if (L.anomalies.length) h += `<div class="card">${L.anomalies.slice(0, 4).map(a => `<div class="kv"><span>${a.cat.e} ${esc(a.cat.n)}</span><span>${a.isNew ? `${money(a.cur)} <small class="mini">קטגוריה חדשה</small>` : `צפי ${money(a.proj)} <small class="mini">לעומת ${money(a.med)} רגיל</small>`}</span></div>`).join('')}<p class="mini mt">בהשוואה לחודש טיפוסי אצלכם. חג או אירוע חד פעמי הם הסבר לגיטימי.</p></div>`;
+  else h += `<div class="card mini">${L.hist >= 2 ? 'אין חריגות החודש.' : 'עוד אין מספיק היסטוריה כדי לזהות חריגות (צריך לפחות חודשיים מלאים).'}</div>`;
+  h += `</div><div class="sec"><h2>תובנות</h2>`;
+  if (L.spike && L.spike >= 1.4) h += `<div class="leak info"><h3>📈 קפיצה אחרי המשכורת</h3><p>בשלושת הימים הראשונים אחרי המשכורת אתם מוציאים פי ${nf1.format(L.spike)} מיום רגיל (לפי ${pl(L.hist, 'חודש אחד', 'חודשים')}, בלי קניות גדולות). אפשר לפזר את התקציב ולהשאיר חלק לסוף החודש.</p></div>`;
+  const dn = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+  const wkRows = L.wk.map((v, i) => ({ l: dn[i], v: L.wkN[i] ? v / L.wkN[i] : 0 }));
+  if (sum(wkRows.map(r => r.v)) > 0) {
+    const mx = Math.max(...wkRows.map(r => r.v));
+    h += `<div class="card"><b>כמה מוציאים בכל יום בשבוע</b><p class="mini">ממוצע ליום, בלי הוצאות קבועות</p><div class="mt">${barsHTML(wkRows.map(r => ({ ...r, c: r.v === mx ? 'var(--leak)' : '' })), v => money(v))}</div></div>`;
+  }
+  if (L.sorted.length) {
+    const names80 = L.sorted.slice(0, L.n80).map(([k]) => catById(k).n).join(', ');
+    h += `<div class="card"><b>איפה רוב הכסף</b><p class="mini">${pl(L.n80, 'קטגוריה אחת מסבירה', 'קטגוריות מסבירות')} 80% מההוצאות המשתנות והתשלומים: ${esc(names80)}</p><div class="mt">${barsHTML(L.sorted.slice(0, 6).map(([k, v]) => ({ l: catById(k).e + ' ' + catById(k).n, v, c: colOf(k) })), v => money(v))}</div></div>`;
+  }
+  const keys = cycleKeys().filter(k => k === curKey() || dayCov(cs(k)) >= 0.35).slice(-6);
+  if (keys.length >= 2) {
+    const rows = keys.map(k => { const x = cs(k); return { l: fmtShort(k), v: x.varSpent + x.inst, k }; });
+    h += `<div class="card"><b>הוצאות משתנות לפי חודש</b><p class="mini">החודש האחרון עדיין לא נגמר.</p><div class="mt">${barsHTML(rows.map((r, i) => ({ ...r, c: i === rows.length - 1 ? 'var(--coin)' : '' })), v => money(v))}</div></div>`;
+  }
+  const lc = activeClosed().slice(-1)[0];
+  if (lc && dayCov(cs(lc)) >= 0.5) {
+    const x = cs(lc), tot = x.fixed + x.lumps + x.inst + x.varSpent;
+    const fx = cat => sum(fixedList().filter(f => f.cat === cat).map(f => +f.amount));
+    const housing = fx('housing'), tr = fx('car') + fx('comms') + (x.byCat.transport || 0), food = x.byCat.food || 0;
+    const sh = v => tot ? v / tot * 100 : 0;
+    const rows = [['דיור (שכירות/משכנתא)', sh(housing), 25.3], ['תחבורה ותקשורת', sh(tr), 18.6], ['סופר ומכולת', sh(food), 17.9]];
+    h += `<div class="card"><b>אתם מול הממוצע בארץ</b><p class="mini">חלק מכל ההוצאות שרשמתם, לעומת ממוצע ארצי בערך (למ״ס 2023, כל סוגי משקי הבית, כולל בעלי דירות, ולכן שכירות תיראה גבוהה). זה כיוון ולא מדד.</p>${rows.map(([l, v, nat]) => `<div class="kv"><span>${l}</span><span><b>${Math.round(v)}%</b> <small class="mini">לעומת כ־${nat}%</small></span></div>`).join('')}</div>`;
+  }
+  return h + `</div>`;
+}
+
+/* ---------- transactions ---------- */
+function filteredTx() {
+  const key = T.key || curKey(), end = cycleEnd(key); const q = T.q.trim().toLowerCase();
+  const inCycle = t => (t.date >= key && t.date < end) || (t.inst > 1 && instCharge(t, key) > 0);
+  return txLive().filter(t => q || inCycle(t))
+    .filter(t => T.who === 'all' || String(t.who) === T.who)
+    .filter(t => !q || (t.note || '').toLowerCase().includes(q) || catById(t.cat).n.includes(q) || String(t.amt).includes(q))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+}
+function txListHTML() {
+  const list = filteredTx(), key = T.key || curKey();
+  if (!list.length) return `<div class="card empty"><div class="big">🗒️</div><p>${T.q || T.who !== 'all' ? 'לא נמצאו תנועות לפי הסינון.' : 'אין תנועות בחודש הזה.'}</p>${T.q || T.who !== 'all' ? '' : '<p class="mt"><button class="btn coin" data-act="add">רשמו הוצאה</button></p>'}</div>`;
+  const groups = {}; for (const t of list) (groups[t.date] = groups[t.date] || []).push(t);
+  return Object.keys(groups).sort().reverse().map(d => { const tot = sum(groups[d].map(t => t.inst > 1 ? 0 : t.amt)); return `<div class="mini" style="margin:14px 4px 6px;display:flex;justify-content:space-between"><span>${fmtDay(d)}</span><span>${tot ? money(tot) : ''}</span></div><div class="list">${groups[d].map(t => txRow(t, T.q ? null : key)).join('')}</div>`; }).join('');
+}
+function viewTx() {
+  const key = T.key || curKey(); const c = cs(key); const isCur = key === curKey();
+  const filt = T.who !== 'all' || T.q;
+  return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div><h1>תנועות</h1><div class="cyc">${cycleLabel(key)}</div></div>
+   <div class="row2" style="flex:none"><button class="pill" data-act="cyc" data-d="-1" aria-label="חודש קודם">›</button><button class="pill" data-act="cyc" data-d="1" ${isCur ? 'disabled style="opacity:.4"' : ''} aria-label="חודש הבא">‹</button></div></div></header>
+  <div class="sec" style="padding-top:14px"><div class="kpi3"><div class="stat"><b>${money(c.varSpent)}</b><span>הוצאות משתנות${filt ? ' (כל החודש)' : ''}</span></div><div class="stat"><b>${money(c.inst)}</b><span>תשלומים</span></div><div class="stat"><b>${money(c.remaining)}</b><span>${isCur ? 'נשאר' : 'יתרה'}</span></div></div>
+  <div class="row2 mt"><input id="q" type="search" placeholder="חיפוש בכל החודשים" value="${esc(T.q)}" style="flex:1"><button class="btn ghost" data-act="import" style="flex:none;padding:0 14px">ייבוא</button></div>
+  <div class="seg mt"><button aria-pressed="${T.who === 'all'}" data-act="twho" data-v="all">הכל</button><button aria-pressed="${T.who === '0'}" data-act="twho" data-v="0">${esc(names()[0])}</button><button aria-pressed="${T.who === '1'}" data-act="twho" data-v="1">${esc(names()[1])}</button><button aria-pressed="${T.who === '2'}" data-act="twho" data-v="2">שנינו</button></div>
+  <div id="txlist">${txListHTML()}</div></div>`;
+}
+
+/* ---------- more / budget / couple ---------- */
+function viewMore() {
+  if (SUB === 'budget') return viewBudget();
+  if (SUB === 'cash') return viewCash();
+  if (SUB === 'why') return viewWhy();
+  if (SUB === 'couple') return viewCouple();
+  const item = (a, ico, t, s) => `<button class="item" data-act="${a}"><span class="ico">${ico}</span><span class="t"><b>${t}</b><small>${s}</small></span>${I.chev}</button>`;
+  return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div><h1>עוד</h1><div class="cyc">תקציב, גיבוי והגדרות</div></div></div></header>${banners()}
+  <div class="sec"><div class="list">
+  ${item('gobudget', '🧾', 'תקציב: הכנסות והוצאות קבועות', 'משכורות, שכר דירה, ארנונה, הוצאות שנתיות')}
+  ${item('report', '📄', 'דוח חודשי', 'תמונת מצב מתחילת החודש עד היום, או חודש שנגמר. שיתוף, PDF וטבלה')}
+  ${item('gocash', '💵', 'מזומן', 'משיכות מהכספומט, מאיזה חשבון, ומה נעשה בהן')}
+  ${item('gocouple', '👫', 'ביחד', 'מי משלם מה, פגישת כסף שבועית, הוצאות גדולות')}
+  ${item('import', '📥', 'ייבוא מדף אשראי', 'הדביקו שורות מהכרטיס ואשרו בלחיצה')}
+  ${item('backup', '💾', 'גיבוי ושיתוף בין הטלפונים', S.lastBackup ? 'גיבוי אחרון: ' + new Date(S.lastBackup).toLocaleDateString('he-IL') : 'עוד לא גיביתם')}
+  ${item('restore', '🛡️', 'הזיכרון הבטוח', memoryStatus())}
+  ${item('settings', '⚙️', 'הגדרות', 'שמות, יום משכורת, ספי התראה, גיבוי אוטומטי')}
+  ${item('pinsheet', '🔒', 'קוד נעילה', S.pin ? 'פעיל' : 'לא מוגדר')}
+  ${item('guide', '📲', 'אייקון במסך הבית', isStandalone() ? 'מותקן' : 'אנדרואיד ואייפון, 10 שניות')}
+  ${S.demo ? item('cleardemo', '🧹', 'מחיקת נתוני הדמו', 'כדי להתחיל באמת') : item('demo', '🧪', 'הצצה עם נתוני דמו', 'אפשר למחוק בלחיצה')}
+  </div></div><p class="mini" style="text-align:center;margin-top:18px;padding:0 20px">הנתונים נשמרים רק על הטלפון הזה. שום דבר לא נשלח לשום שרת.</p>`;
+}
+const back = () => `<button class="pill" data-act="gomore" style="margin-bottom:8px">→ חזרה</button>`;
+function viewBudget() {
+  const c = cs(curKey());
+  const row = (ico, t, s, a, act, id) => `<button class="item" data-act="${act}" data-id="${esc(id)}"><span class="ico">${ico}</span><span class="t"><b>${esc(t)}</b><small>${esc(s)}</small></span><span class="a ${act === 'editinc' ? 'in' : ''}">${money(a)}</span></button>`;
+  const inc = live(S.incomes), fx = live(S.fixed), lu = live(S.lumps);
+  const seg = (v, col, l) => v > 0 ? `<i style="width:${Math.max(0, v / Math.max(c.income, 1) * 100)}%;background:${col}" title="${l}"></i>` : '';
+  return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div>${back()}<h1>תקציב</h1><div class="cyc">מה נכנס, מה קבוע ומה נשאר לחיות</div></div></div></header>
+  <div class="sec" style="padding-top:14px"><div class="card"><div class="kv"><span>הכנסות נטו בחודש</span><b>${money(c.income)}</b></div><div class="kv"><span>הוצאות קבועות</span><b>${money(c.fixed)}</b></div><div class="kv"><span>הוצאות שנתיות, חלק חודשי</span><b>${money(c.lumps)}</b></div><div class="kv"><span>חיסכון קבוע</span><b>${money(c.savings)}</b></div><div class="kv"><span>תשלומים פתוחים</span><b>${money(c.inst)}</b></div><div class="kv" style="font-size:17px"><span><b>נשאר לחיים החודש</b></span><b style="color:${c.budget < 0 ? 'var(--leak)' : 'var(--ok)'}">${money(c.budget)}</b></div>
+  <div class="bar mt" style="display:flex;direction:ltr">${seg(c.fixed, '#5C7CFA', 'קבועות')}${seg(c.lumps, '#F5B82E', 'שנתיות')}${seg(c.savings, '#18895C', 'חיסכון')}${seg(c.inst, '#B66DFF', 'תשלומים')}</div></div></div>
+  <div class="sec"><h2>הכנסות</h2><div class="list">${inc.map(x => row('💰', x.name, whoName(x.who), x.amount, 'editinc', x.id)).join('') || '<div class="empty">אין עדיין הכנסות</div>'}</div><p class="mt"><button class="btn ghost block" data-act="addinc">+ הוספת הכנסה</button></p></div>
+  <div class="sec"><h2>הוצאות קבועות</h2><p class="sub">מה שחוזר כל חודש. מזינים פעם אחת, ואין צורך לרשום כל חודש.</p><div class="list">${fx.map(x => row(catById(x.cat).e, x.name, (x.sub ? 'מנוי' : catById(x.cat).n) + (x.active === false ? ' · מושהה' : ''), x.amount, 'editfix', x.id)).join('') || '<div class="empty">אין עדיין הוצאות קבועות</div>'}</div><p class="mt"><button class="btn ghost block" data-act="addfix">+ הוספת הוצאה קבועה</button></p></div>
+  <div class="sec"><h2>הוצאות שנתיות</h2><p class="sub">ביטוח רכב, טסט, חגים, חופשה. מחלקים ב־12 ושומרים בצד, כדי שלא יפתיעו.</p><div class="list">${lu.map(x => row('📆', x.name, `${moneyT(x.amountYear / 12)} לחודש`, x.amountYear, 'editlump', x.id)).join('') || '<div class="empty">אין עדיין</div>'}</div><p class="mt"><button class="btn ghost block" data-act="addlump">+ הוספת הוצאה שנתית</button></p></div>`;
+}
+function viewCouple() {
+  const c = cs(curKey()), n = names(), p = progress(c); const L = computeLeaks();
+  const by = [0, 0, 0]; for (const t of c.varTx) by[t.who] += t.amt; for (const { t, c: v } of c.instTx) by[t.who] += v;
+  const incBy = [0, 0]; for (const i of live(S.incomes)) if (i.who === 0 || i.who === 1) incBy[i.who] += i.amount; const incTot = incBy[0] + incBy[1];
+  const fb = [0, 0, 0]; for (const f of fixedList()) fb[[0, 1, 2].includes(f.who) ? f.who : 2] += +f.amount || 0;
+  const shared = (c.lumps + c.savings) / 2;
+  const cost0 = by[0] + by[2] / 2 + fb[0] + fb[2] / 2 + shared, cost1 = by[1] + by[2] / 2 + fb[1] + fb[2] / 2 + shared, costTot = cost0 + cost1;
+  const big = txLive().filter(t => t.amt >= S.settings.approve && !t.talked && t.date >= c.key).sort((a, b) => b.date.localeCompare(a.date));
+  const topHole = pickHole(L);
+  const lumpNames = live(S.lumps).map(l => l.name).join(', ');
+  const rem = c.remaining;
+  const agenda = [
+    topHole ? `החור המוביל: ${topHole.title}. מה אחד קטן שנעשה בו השבוע?` : 'עוד אין חור מוביל. מה כדאי לתעד טוב יותר?',
+    L.anomalies.length ? `חריגות: ${L.anomalies.slice(0, 2).map(a => a.cat.n).join(' ו')}. מה קרה שם?` : L.hist >= 2 ? 'אין חריגות החודש.' : 'עוד אין מספיק היסטוריה לזהות חריגות.',
+    rem >= 0 ? `נשאר ${moneyT(rem)} עד המשכורת, כ־${moneyT(rem / p.left)} ליום.` : `חרגתם ב־${moneyT(-rem)} מהתקציב החודשי. מה משנים?`,
+    lumpNames ? `הוצאות שנתיות בדרך: ${lumpNames}. האם הקופה שלהן בסדר?` : 'אין הוצאות שנתיות מוגדרות. האם יש משהו גדול בדרך?',
+    'החלטה אחת לשבוע הקרוב:'
+  ];
+  const fair = incTot > 0 && costTot > 0 && p.el >= 10 ? `<div class="mt"><div class="kv"><span>${esc(n[0])}</span><span>${Math.round(incBy[0] / incTot * 100)}% מההכנסה, ${Math.round(cost0 / costTot * 100)}% מההוצאות</span></div><div class="kv"><span>${esc(n[1])}</span><span>${Math.round(incBy[1] / incTot * 100)}% מההכנסה, ${Math.round(cost1 / costTot * 100)}% מההוצאות</span></div></div><p class="mini mt">כולל הוצאות קבועות, ועם חצי מכל הוצאה משותפת לכל אחד. אין "נכון", כדאי רק שזה יהיה מוסכם.</p>` : `<p class="mini mt">חלוקת הכנסה מול הוצאות תופיע אחרי עשרה ימים של תיעוד בחודש.</p>`;
+  return `<header class="hero" style="padding-bottom:22px;border-radius:0 0 28px 28px"><div class="row"><div>${back()}<h1>ביחד</h1><div class="cyc">שקיפות, בלי להאשים אף אחד</div></div></div></header>
+  <div class="sec" style="padding-top:14px"><div class="card"><b>מי רשום כמשלם החודש (הוצאות משתנות)</b><div class="mt">${barsHTML([{ l: n[0], v: by[0] }, { l: n[1], v: by[1] }, { l: 'שנינו', v: by[2], c: 'var(--coin)' }])}</div>${fair}</div></div>
+  <div class="sec"><h2>הוצאות גדולות שעוד לא דיברתם עליהן</h2>${big.length ? `<div class="list">${big.map(t => `<div class="item"><span class="ico">${catById(t.cat).e}</span><span class="t"><b>${esc(catById(t.cat).n)} ${t.note ? '· ' + esc(t.note) : ''}</b><small>${fmtShort(t.date)} · ${esc(whoName(t.who))}</small></span><span class="a">${money(t.amt)}</span><button class="btn sm ghost" data-act="talked" data-id="${esc(t.id)}">✓ דיברנו על זה</button></div>`).join('')}</div>` : `<div class="card empty">אין. הסף הוא ${money(S.settings.approve)}, אפשר לשנות בהגדרות.</div>`}</div>
+  <div class="sec"><h2>פגישת כסף של 10 דקות</h2><p class="sub">פעם בשבוע, אותו יום ואותה שעה. סדר היום מוכן:</p><div class="card">${agenda.map((a, i) => `<div style="padding:8px 0;${i ? 'border-top:1px dashed var(--line)' : ''}">${i + 1}. ${esc(a)}</div>`).join('')}
+   <div class="field mt"><textarea id="decision" rows="2" placeholder="כותבים כאן את ההחלטה">${esc(S.meeting.decision || '')}</textarea></div>
+   <button class="btn block" data-act="meetdone">קיימנו את הפגישה ✓</button>${S.meeting.last ? `<p class="mini mt">פגישה אחרונה: ${new Date(S.meeting.last).toLocaleDateString('he-IL')}</p>` : ''}</div></div>`;
+}
+/* ================= live dashboard (home), "why" screen ================= */
+let MODE = 'week'; try { MODE = localStorage.getItem('hk_mode') === 'month' ? 'month' : 'week'; } catch (e) { }
+function setMode(m) { MODE = m; try { localStorage.setItem('hk_mode', m); } catch (e) { } render(); }
+function ringSVG(frac, color, label, big, sub) {
+  const r = 54, C = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac || 0));
+  return `<div class="ring"><svg viewBox="0 0 140 140" aria-hidden="true"><circle cx="70" cy="70" r="${r}" class="ring-bg"/><circle cx="70" cy="70" r="${r}" class="ring-fg" style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${C * (1 - f)}"/></svg><div class="ring-txt"><b><bdi class="num">${big}</bdi></b><span>${label}</span>${sub ? `<small>${sub}</small>` : ''}</div></div>`;
+}
+function dayBars(byDay, start) {
+  const mx = Math.max(1, ...byDay), tod = pd(today()).getDay(), isCurWeek = start === weekStart();
+  return `<div class="days">${byDay.map((v, i) => `<div class="day ${isCurWeek && i === tod ? 'today' : ''} ${isCurWeek && i > tod ? 'future' : ''}"><i style="height:${Math.max(v > 0 ? 6 : 2, v / mx * 100)}%"></i><span>${DAYS_HE[i]}</span><small>${v ? nf.format(v) : ''}</small></div>`).join('')}</div>`;
+}
+function catStack(P) {
+  if (!P.total) return '';
+  const top = P.cats.slice(0, 5), rest = P.total - sum(top.map(x => x[1]));
+  return `<div class="stack">${top.map(([c, v]) => `<i style="width:${v / P.total * 100}%;background:${colOf(c)}" title="${esc(catById(c).n)}"></i>`).join('')}${rest > 0 ? `<i style="width:${rest / P.total * 100}%;background:var(--line)"></i>` : ''}</div>
+  <div class="legend">${top.map(([c, v]) => `<button data-act="why" data-cat="${c}"><i style="background:${colOf(c)}"></i>${catById(c).e} ${esc(catById(c).n)} <b>${money(v)}</b></button>`).join('')}</div>`;
+}
+function whenStr(t) { const tm = txTime(t); return `${relDate(t.date)}${tm ? ' ' + tm : ''}`; }
+function topCatCard(P, mode) {
+  if (!P.cats.length) return '';
+  const [cat] = P.cats[0]; const W = whyInfo(mode, P.start, cat), c = catById(cat);
+  const trend = W.prevAmt > 0 ? (W.delta >= 0 ? `↑ ${money(W.delta)} יותר` : `↓ ${money(-W.delta)} פחות`) + ` מ${mode === 'week' ? 'השבוע שעבר' : 'החודש שעבר'}` : (mode === 'week' ? 'השבוע שעבר: אין' : 'החודש שעבר: אין');
+  const big = W.big;
+  return `<div class="sec"><h2>איפה הכי הרבה, ולמה</h2><button class="card whyCard" data-act="why" data-cat="${cat}" style="border-inline-start:6px solid ${colOf(cat)}">
+   <div class="row"><div><b class="whyTitle">${c.e} ${esc(c.n)}</b><div class="mini">${W.n === 1 ? 'קנייה אחת' : W.n + ' קניות'} · ${Math.round(W.share * 100)}% מההוצאות</div></div><div class="whyAmt"><bdi class="num">${money(W.amt)}</bdi><small>${trend}</small></div></div>
+   ${big ? `<div class="whyBig">הקנייה הגדולה: <b>${money(big.amt)}</b> · ${esc(whenStr(big))} · ${esc(whoName(big.who))}${big.why ? ` · <span class="tag">${esc(big.why)}</span>` : ''}${big.note ? ` · ${esc(big.note)}` : ''}</div>` : ''}
+   ${W.reasons.length ? `<div class="chips mt" style="gap:6px">${W.reasons.slice(0, 4).map(([r, v]) => `<span class="chip sm">${esc(r)} ${money(v)}</span>`).join('')}</div>` : ''}
+   <div class="mini mt" style="text-align:end">לכל הפרטים ›</div></button></div>`;
+}
+function quickTiles() {
+  return `<div class="tiles">${VCATS.slice(0, 8).map(c => `<button class="tile" data-act="addcat" data-cat="${c.id}" style="--c:${colOf(c.id)}"><span>${c.e}</span>${esc(c.n)}</button>`).join('')}</div>`;
+}
+function viewHome() {
+  const c = cs(curKey()), p = progress(c), P = pstats(MODE), m = me(), n = names();
+  const noBudget = c.income <= 0;
+  const all = txLive().slice().sort((a, b) => b.date.localeCompare(a.date) || (b.at || b.updatedAt || '').localeCompare(a.at || a.updatedAt || ''));
+  let hero;
+  if (MODE === 'week') {
+    const weekBudget = c.budget > 0 ? c.budget / (c.days / 7) : 0;
+    const hasAllow = P.allowance > 0;
+    const frac = hasAllow ? P.myCash / P.allowance : weekBudget ? P.total / weekBudget : 0;
+    const color = frac > 1 ? 'var(--bad)' : frac > .85 ? 'var(--coin)' : 'var(--good)';
+    const ring = hasAllow ? ringSVG(frac, color, 'נשאר מדמי השבוע', money(P.allowLeft), `מתוך ${money(P.allowance)}`) : ringSVG(frac, color, 'הוצאנו השבוע', money(P.total), weekBudget ? `תקציב שבועי ${money(weekBudget)}` : '');
+    hero = `<div class="live"><div class="liveTop">${ring}<div class="liveStats"><div class="kv"><span>הוצאות השבוע</span><b>${money(P.total)}</b></div><div class="kv"><span>${esc(n[0])}</span><b>${money(P.byWho[0] + P.byWho[2] / 2)}</b></div><div class="kv"><span>${esc(n[1])}</span><b>${money(P.byWho[1] + P.byWho[2] / 2)}</b></div><div class="kv"><span>במזומן (${esc(myName())})</span><b>${money(P.myCash)}</b></div></div></div>${dayBars(P.byDay, P.start)}</div>`;
+  } else {
+    const level = c.budget > 0 ? Math.max(0, Math.min(1, c.remaining / c.budget)) : 0;
+    const daily = c.budget > 0 ? Math.max(0, c.remaining) / p.left : 0;
+    const diff = c.budget > 0 ? c.varSpent - c.budget * Math.max(0, p.el - 1) / c.days : 0;
+    const color = c.remaining < 0 ? 'var(--bad)' : diff > c.budget * .12 ? 'var(--coin)' : 'var(--good)';
+    const ring = noBudget ? ringSVG(0, 'var(--line)', 'אין עדיין תקציב', '—') : ringSVG(level, color, 'נשאר עד המשכורת', money(c.remaining), `מתוך ${money(c.budget)}`);
+    hero = `<div class="live"><div class="liveTop">${ring}<div class="liveStats"><div class="kv"><span>הוצאנו החודש</span><b>${money(c.varSpent)}</b></div><div class="kv"><span>ליום מהיום</span><b>${money(daily)}</b></div><div class="kv"><span>ימים למשכורת</span><b>${p.left}</b></div><div class="kv"><span>קבועות + תשלומים</span><b>${money(c.fixed + c.lumps + c.inst)}</b></div></div></div>${noBudget ? `<p class="mini mt" style="text-align:center">הוסיפו משכורות והוצאות קבועות כדי לראות כמה נשאר. <button class="lnk" data-act="gobudget">להגדרה</button></p>` : ''}</div>`;
+  }
+  const L = computeLeaks(); const top = pickHole(L);
+  const K = cashStats(MODE === 'week' ? null : curKey(), MODE === 'week' ? P.start : null);
+  return `<header class="hero"><div class="row"><div><div class="hi">שלום ${esc(myName())} 👋</div><div class="cyc">${esc(fmtDay(today()))}${MODE === 'month' ? ' · ' + esc(cycleLabel(c.key)) : ''}</div></div><button class="pill" data-act="whoami">📱 הטלפון של ${esc(myName())}</button></div>
+  <div class="seg modeSeg"><button aria-pressed="${MODE === 'week'}" data-act="mode" data-v="week">השבוע</button><button aria-pressed="${MODE === 'month'}" data-act="mode" data-v="month">החודש</button></div></header>
+  <div class="liveCard">${hero}</div>
+  ${banners()}
+  <div class="sec"><h2>רישום מהיר</h2>${quickTiles()}</div>
+  ${P.total ? `<div class="sec"><h2>לאן הלך הכסף ${MODE === 'week' ? 'השבוע' : 'החודש'}</h2><div class="card">${catStack(P)}</div></div>` : ''}
+  ${topCatCard(P, MODE)}
+  ${cashCardP(K)}
+  ${top ? `<div class="sec">${holeBlock(top, true)}</div>` : ''}
+  ${txLive().length ? '<div class="sec"><button class="btn ghost block" data-act="report">📄 דוח החודש עד היום</button></div>' : ''}
+  <div class="sec"><h2>האחרונות</h2>${all.length ? `<div class="list">${all.slice(0, 6).map(t => txRow(t, null, true)).join('')}</div><p class="mt"><button class="btn ghost block" data-act="gotx">כל התנועות</button></p>` : `<div class="card empty"><div class="big">✍️</div><p>עוד לא רשמתם כלום. לחצו על אחת המשבצות למעלה, או על הפלוס, והרישום לוקח 5 שניות.</p></div>`}</div>`;
+}
+let WHY = null;
+function viewWhy() {
+  const { cat, mode, ref } = WHY, W = whyInfo(mode, ref, cat), c = catById(cat), P = pstats(mode, ref);
+  const mx = Math.max(1, ...W.byDay);
+  return `<header class="hero" style="padding-bottom:22px"><div class="row"><div>${back()}<h1>${c.e} ${esc(c.n)}</h1><div class="cyc">${esc(P.label)} · ${mode === 'week' ? 'השבוע' : 'החודש'}</div></div></div></header>
+  <div class="sec" style="padding-top:14px"><div class="card"><div class="kv"><span>סך הכל</span><b>${money(W.amt)}</b></div><div class="kv"><span>קניות</span><b>${W.n}</b></div><div class="kv"><span>ממוצע לקנייה</span><b>${money(W.n ? W.amt / W.n : 0)}</b></div><div class="kv"><span>חלק מכל ההוצאות</span><b>${Math.round(W.share * 100)}%</b></div><div class="kv"><span>${mode === 'week' ? 'השבוע שעבר' : 'החודש שעבר'}</span><b>${money(W.prevAmt)} <small class="mini">${W.prevAmt ? (W.delta >= 0 ? '↑' : '↓') + ' ' + money(Math.abs(W.delta)) : ''}</small></b></div><div class="kv"><span>${esc(names()[0])} / ${esc(names()[1])} / שנינו</span><b>${money(W.byWho[0])} / ${money(W.byWho[1])} / ${money(W.byWho[2])}</b></div></div></div>
+  ${W.reasons.length ? `<div class="sec"><h2>למה</h2><div class="card">${W.reasons.map(([r, v]) => `<div class="barRow"><span>${esc(r)}</span><div class="bar"><i style="width:${v / W.amt * 100}%;background:${colOf(cat)}"></i></div><span class="v">${money(v)}</span></div>`).join('')}</div></div>` : ''}
+  <div class="sec"><h2>באילו ימים</h2><div class="card"><div class="days">${W.byDay.map((v, i) => `<div class="day"><i style="height:${Math.max(v > 0 ? 6 : 2, v / mx * 100)}%;background:${colOf(cat)}"></i><span>${DAYS_HE[i]}</span><small>${v ? nf.format(v) : ''}</small></div>`).join('')}</div></div></div>
+  <div class="sec"><h2>כל הקניות, מהגדולה לקטנה</h2><div class="list">${W.items.map(t => txRow(t, null, true)).join('') || '<div class="empty">אין</div>'}</div></div>`;
+}
+function cashCardP(k) {
+  const n = names();
+  if (!k.wdC.length && !k.spC.length) return `<div class="sec"><button class="card tap" data-act="gocash"><b>💵 משיכות מהכספומט ודמי השבוע</b><p class="mini mt">רשמו כל משיכה: מאיזה חשבון, ולמי נמסר המזומן. אחר כך כל קנייה במזומן נרשמת רגיל, והאפליקציה מראה כמה מזומן "נעלם".</p><p class="mt"><span class="btn ghost sm">+ רישום משיכה</span></p></button></div>`;
+  return `<div class="sec"><h2>מזומן</h2><button class="card tap" data-act="gocash"><div class="stats"><div class="stat"><b>${money(k.wdSum)}</b><span>נמשך</span></div><div class="stat"><b>${money(k.spSum)}</b><span>נרשם במזומן</span></div><div class="stat"><b style="color:${k.gap > 0 ? 'var(--bad)' : 'var(--good)'}">${money(k.gap)}</b><span>לא מוסבר</span></div></div>
+  <p class="mini mt">מהחשבון של ${esc(n[0])}: ${money(k.by[0])} · ${esc(n[1])}: ${money(k.by[1])}${k.by[2] ? ' · משותף: ' + money(k.by[2]) : ''} · בארנק של ${esc(n[0])} בערך ${money(Math.max(0, k.wallet[0]))}, של ${esc(n[1])} בערך ${money(Math.max(0, k.wallet[1]))}</p></button></div>`;
+}
+/* ================= monthly report, CSV, PIN lock ================= */
+function downloadFile(name, text, mime) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime || 'text/plain;charset=utf-8' })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+async function shareOrDownload(name, text, mime) {
+  if (ART) { if (/html/.test(mime)) openReportView(text); else outSheet('נתוני החודש (CSV)', text, 'העתיקו והדביקו בטלגרם או בקובץ טקסט. אפשר להדביק גם באקסל.'); return 'sheet'; }
+  try {
+    const f = new File([text], name, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: name }); return 'shared'; }
+  } catch (e) { if (e && e.name === 'AbortError') return 'abort'; }
+  downloadFile(name, text, mime + ';charset=utf-8'); return 'downloaded';
+}
+function printHTML(html) {
+  if (ART) { openReportView(html); return; }
+  const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;inset-inline-start:-9999px;width:820px;height:600px;border:0';
+  document.body.appendChild(fr);
+  fr.onload = () => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('ההדפסה לא נתמכת כאן. שתפו כקובץ ופתחו אותו במחשב.'); } setTimeout(() => fr.remove(), 90000); };
+  fr.srcdoc = html;
+}
+function cycleLabelFull(key) { return `${pd(key).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })} עד ${pd(addD(cycleEnd(key), -1)).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}`; }
+
+function reportData(key) {
+  const c = cs(key), isCur = key === curKey(), pk = addM(key, -1);
+  const pc = cycleKeys().includes(pk) && cs(pk).varTx.length ? cs(pk) : null;
+  const by = [0, 0, 0]; for (const t of c.varTx) by[t.who] += t.amt; for (const { t, c: v } of c.instTx) by[t.who] += v;
+  const cats = Object.entries(c.byCat).filter(([, v]) => v > 0.5).sort((a, b) => b[1] - a[1]);
+  const totVar = sum(cats.map(x => x[1]));
+  const small = +S.settings.small || 50, SKIP = new Set(['eatout', 'delivery', 'cash', 'fees', 'subs']);
+  const smalls = c.varTx.filter(t => t.amt < small && !SKIP.has(t.cat));
+  const spent = c.fixed + c.lumps + c.inst + c.varSpent;
+  return { c, isCur, pc, by, cats, totVar, smalls, spent, top: c.varTx.slice().sort((a, b) => b.amt - a.amt).slice(0, 5), p: progress(c) };
+}
+
+function reportHTML(key) {
+  const R = reportData(key), c = R.c, n = names(), pc = R.pc;
+  const cell = (t, cls) => `<td${cls ? ` class="${cls}"` : ''}>${t}</td>`;
+  const catRows = R.cats.map(([id, v]) => {
+    const prev = pc ? (pc.byCat[id] || 0) : null, d = prev == null ? '' : v - prev;
+    return `<tr>${cell(esc(catById(id).e + ' ' + catById(id).n))}${cell(money(v), 'r')}${cell(Math.round(v / R.totVar * 100) + '%', 'r')}${cell(prev == null ? '' : `<span class="${d > 0 ? 'up' : 'dn'}">${d > 0 ? '+' : '−'}${money(Math.abs(d)).replace(/<[^>]+>/g, '')}</span>`, 'r')}</tr>`;
+  }).join('');
+  const leaks = [['🛵 משלוחים', c.byCat.delivery || 0], ['☕ אוכל וקפה בחוץ', c.byCat.eatout || 0], ['🪙 קניות קטנות (' + smallsLabel(R) + ')', sum(R.smalls.map(t => t.amt))], ['🏦 עמלות וריבית', c.byCat.fees || 0], ['💵 משיכות מזומן', c.byCat.cash || 0]].filter(x => x[1] > 0);
+  const subs = subsList();
+  const surplus = c.remaining;
+  const saveRate = c.income > 0 ? Math.round((c.savings + Math.max(0, surplus)) / c.income * 100) : null;
+  const css = `*{box-sizing:border-box}body{font-family:Rubik,Heebo,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;margin:0;padding:24px;color:#0F2E36;background:#fff;line-height:1.5}
+  .num{direction:ltr;unicode-bidi:isolate;display:inline-block;font-variant-numeric:tabular-nums}
+  h1{margin:0 0 4px;font-size:26px}h2{font-size:17px;margin:26px 0 8px;border-bottom:2px solid #1B9AAA;padding-bottom:4px}
+  .sub{color:#52727A;margin:0 0 14px}.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .k{background:#F3F9F8;border-radius:12px;padding:12px}.k b{display:block;font-size:20px}.k span{font-size:13px;color:#52727A}
+  table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px 6px;border-bottom:1px solid #D6E4E3;text-align:start}th{color:#52727A;font-weight:500}.r{text-align:end}
+  .up{color:#B5223A}.dn{color:#0F7048}.box{background:#FFF2D9;border-radius:12px;padding:12px;margin-top:10px;font-size:14px}
+  .foot{margin-top:26px;font-size:12px;color:#52727A}@media print{body{padding:0}.k{break-inside:avoid}h2{break-after:avoid}table{break-inside:auto}tr{break-inside:avoid}}`;
+  return `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>דוח חודשי ${esc(cycleLabel(key))}</title><style>${css}</style></head><body>
+  <h1>דוח חודשי: ${esc(n[0])} ו${esc(n[1])}</h1><p class="sub">הופק מהטלפון של ${esc(myName())}</p><p class="sub">${esc(cycleLabelFull(key))}${R.isCur ? ` · מצב נכון להיום (יום ${R.p.el} מתוך ${c.days}, החודש עוד לא נגמר)` : ''}</p>
+  <div class="kpis"><div class="k"><b>${money(c.income)}</b><span>הכנסות נטו</span></div><div class="k"><b>${money(R.spent)}</b><span>סך ההוצאות שנרשמו והוגדרו</span></div><div class="k"><b style="color:${surplus < 0 ? '#B5223A' : '#0F7048'}">${money(surplus)}</b><span>${surplus < 0 ? 'חריגה מהתקציב' : R.isCur ? 'נשאר לבזבז' : 'נשאר בסוף החודש'}</span></div></div>
+  <div class="box">${saveRate != null ? `חיסכון קבוע ${money(c.savings)} ועוד יתרה: כ־${saveRate}% מההכנסה נשאר בצד. ` : ''}${pc ? `בהשוואה לחודש הקודם, ההוצאות המשתנות ${R.totVar >= sum(Object.values(pc.byCat)) ? 'עלו' : 'ירדו'} ב־${money(Math.abs(R.totVar - sum(Object.values(pc.byCat))))}.` : 'אין עדיין חודש קודם להשוואה.'}</div>
+  <h2>לאן הלך הכסף (הוצאות משתנות ותשלומים)</h2>${R.cats.length ? `<table><tr><th>קטגוריה</th><th class="r">סכום</th><th class="r">חלק</th><th class="r">מול חודש קודם</th></tr>${catRows}<tr><td><b>סך הכל</b></td><td class="r"><b>${money(R.totVar)}</b></td><td></td><td></td></tr></table>` : '<p>עוד אין הוצאות רשומות בחודש הזה.</p>'}
+  <h2>דליפות אפשריות החודש</h2>${leaks.length ? `<table>${leaks.map(([l, v]) => `<tr>${cell(esc(l))}${cell(money(v), 'r')}</tr>`).join('')}</table>` : '<p>לא נמצאו.</p>'}
+  ${subs.length ? `<p class="sub" style="margin-top:10px">מנויים וחיובים חוזרים (${money(sum(subs.map(s => s.amt)))} בחודש): ${subs.map(s => esc(s.name)).join(', ')}</p>` : ''}
+  <h2>מי רשום כמשלם (הוצאות משתנות)</h2><table><tr>${cell(esc(n[0]))}${cell(money(R.by[0]), 'r')}</tr><tr>${cell(esc(n[1]))}${cell(money(R.by[1]), 'r')}</tr><tr>${cell('שנינו')}${cell(money(R.by[2]), 'r')}</tr></table>
+  <h2>חמש ההוצאות הגדולות</h2>${R.top.length ? `<table>${R.top.map(t => `<tr>${cell(esc(fmtShort(t.date)))}${cell(esc(catById(t.cat).n + (t.why ? ' · ' + t.why : '') + (t.note ? ' · ' + t.note : '') + ' · ' + whoName(t.who)))}${cell(money(t.amt), 'r')}</tr>`).join('')}</table>` : '<p>אין.</p>'}
+  <h2>שבוע אחרי שבוע</h2>${(() => { const rows = []; let ws = weekStart(key); const end = cycleEnd(key); while (ws < end) { const P = pstats('week', ws); if (P.spends.length) rows.push(`<tr>${cell(esc(fmtShort(ws)) + ' – ' + esc(fmtShort(addD(ws, 6))))}${cell(P.cats[0] ? esc(catById(P.cats[0][0]).n) + ' ' + money(P.cats[0][1]) : '')}${cell(money(sum(P.wd.map(t => t.amt))), 'r')}${cell(money(P.total), 'r')}</tr>`); ws = addD(ws, 7); } return rows.length ? `<table><tr><th>שבוע</th><th>הכי הרבה</th><th>נמשך במזומן</th><th>הוצאות</th></tr>${rows.join('')}</table>` : '<p>אין עדיין.</p>'; })()}
+  <h2>משיכות מהכספומט</h2>${(() => { const K = cashStats(key); return K.wdC.length ? `<table><tr>${cell('מהחשבון של ' + esc(n[0]))}${cell(money(K.by[0]), 'r')}</tr><tr>${cell('מהחשבון של ' + esc(n[1]))}${cell(money(K.by[1]), 'r')}</tr><tr>${cell('נמסר ל' + esc(n[0]) + ' / ל' + esc(n[1]))}${cell(money(K.toBy[0]) + ' / ' + money(K.toBy[1]), 'r')}</tr><tr>${cell('נרשם במזומן')}${cell(money(K.spSum), 'r')}</tr><tr>${cell('<b>מזומן לא מוסבר</b>')}${cell('<b>' + money(K.gap) + '</b>', 'r')}</tr></table>` : '<p>לא נרשמו משיכות.</p>'; })()}
+  <h2>למה קנינו (לפי הסיבה שסומנה)</h2>${(() => { const r = {}; for (const t of c.varTx) if (t.why) r[t.why] = (r[t.why] || 0) + t.amt; const e = Object.entries(r).sort((a, b) => b[1] - a[1]); return e.length ? `<table>${e.map(([k, v]) => `<tr>${cell(esc(k))}${cell(money(v), 'r')}</tr>`).join('')}</table>` : '<p>לא סומנו סיבות החודש. בזמן הרישום אפשר לבחור "למה" בלחיצה.</p>'; })()}
+  <h2>הוצאות קבועות ושנתיות (חלק חודשי)</h2><table>${fixedList().map(f => `<tr>${cell(esc(f.name))}${cell(money(f.amount), 'r')}</tr>`).join('')}${live(S.lumps).map(l => `<tr>${cell(esc(l.name) + ' (שנתי)')}${cell(money(l.amountYear / 12), 'r')}</tr>`).join('')}${c.savings ? `<tr>${cell('חיסכון קבוע')}${cell(money(c.savings), 'r')}</tr>` : ''}${c.inst ? `<tr>${cell('תשלומים פתוחים')}${cell(money(c.inst), 'r')}</tr>` : ''}</table>
+  <p class="foot">הופק מהטלפון של ${esc(myName())} · "הכסף שלנו" · ${new Date().toLocaleDateString('he-IL')}. הנתונים מבוססים על מה שנרשם באפליקציה. הערכות ודליפות הן כיוון לשיחה, לא ייעוץ פיננסי.</p></body></html>`;
+}
+function smallsLabel() { return 'עד ₪' + (+S.settings.small || 50); }
+
+function csvText(key) {
+  const end = cycleEnd(key), q = v => { let s = String(v ?? ''); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  const rows = txLive().filter(t => t.date >= key && t.date < end).sort((a, b) => a.date.localeCompare(b.date));
+  return '﻿' + ['תאריך', 'שעה', 'סכום', 'קטגוריה', 'מי שילם / מאיזה חשבון', 'למי נמסר', 'אמצעי תשלום', 'למה', 'תשלומים', 'הערה'].map(q).join(',') + '\r\n' + rows.map(t => [t.date, txTime(t), t.amt, catById(t.cat).n, whoName(t.who), t.cat === 'cash' ? whoName(t.holder == null ? t.who : t.holder) : '', METHODS[t.method] || '', t.why || '', t.inst > 1 ? t.inst : '', t.note || ''].map(q).join(',')).join('\r\n');
+}
+
+let RK = null;
+function openReport(key) { RK = key || curKey(); openSheet('<div id="rptbody"></div>', { full: true }); drawReport(); }
+function drawReport() {
+  const b = $('#rptbody'); if (!b) return;
+  const R = reportData(RK), c = R.c;
+  const prevOk = cycleKeys().includes(addM(RK, -1)), nextOk = RK < curKey();
+  const topCat = R.cats[0];
+  b.innerHTML = `<h2>דוח חודשי<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <div class="row2" style="margin-bottom:10px"><button class="btn ghost sm" data-act="rptnav" data-d="-1" ${prevOk ? '' : 'disabled'} style="flex:none">→</button><b style="text-align:center">${cycleLabel(RK)}${R.isCur ? '<br><small class="mini">עד היום</small>' : ''}</b><button class="btn ghost sm" data-act="rptnav" data-d="1" ${nextOk ? '' : 'disabled'} style="flex:none">←</button></div>
+  <div class="card"><div class="kv"><span>הכנסות</span><b>${money(c.income)}</b></div><div class="kv"><span>סך הוצאות</span><b>${money(R.spent)}</b></div><div class="kv"><span>${c.remaining < 0 ? 'חריגה' : R.isCur ? 'נשאר' : 'נשאר בסוף החודש'}</span><b style="color:${c.remaining < 0 ? 'var(--leak)' : 'var(--ok)'}">${money(c.remaining)}</b></div>${topCat ? `<div class="kv"><span>הקטגוריה הגדולה</span><b>${catById(topCat[0]).e} ${esc(catById(topCat[0]).n)} · ${money(topCat[1])}</b></div>` : ''}</div>
+  <p class="mini mt">הדוח המלא כולל: לאן הלך הכסף, השוואה לחודש קודם, דליפות, מי שילם, ההוצאות הגדולות והקבועות.</p>
+  <button class="btn coin block mt" data-act="rptshare">📤 שתפו דוח כקובץ (טלגרם, וואטסאפ, מייל)</button>
+  <div class="row2 mt"><button class="btn ghost" data-act="rptprint">🖨️ הדפסה / PDF</button><button class="btn ghost" data-act="rptcsv">📊 טבלה (CSV)</button></div>
+  ${!R.isCur && !ART ? `<div class="card mt"><b>סגירת חודש</b><p class="mini">שני צעדים ואפשר להמשיך בשקט:</p><div class="row2 mt"><button class="btn ghost sm" data-act="backup">💾 גיבוי לטלגרם</button><button class="btn ghost sm" data-act="fullcopy">📦 עותק מלא</button></div></div>` : ''}
+  <p class="mini mt">את קובץ ה־HTML אפשר לפתוח בכל טלפון ומחשב, ובמחשב לשמור כ־PDF. בדוח אין קוד נעילה, אז שתפו רק עם מי שרוצים.</p>`;
+}
+
+/* ---------- PIN lock ---------- */
+let PIN = null, pinFails = 0, pinBlockedUntil = 0, hiddenAt = 0;
+async function pinHash(pin, salt) {
+  const s = salt + ':' + pin;
+  try { if (window.crypto && crypto.subtle) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); } } catch (e) { }
+  let h = 5381; for (const ch of s) h = ((h << 5) + h + ch.charCodeAt(0)) | 0; return 'x' + h;
+}
+function pinPadHTML(buf, msg) {
+  return `<div class="amtShow" style="letter-spacing:10px;direction:ltr">${[0, 1, 2, 3].map(i => i < buf.length ? '●' : '○').join('')}</div><div class="hint" role="status">${esc(msg || '')}</div>
+  <div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => k === '' ? '<span></span>' : `<button data-act="pinkey" data-k="${k}" aria-label="${k === '⌫' ? 'מחיקה' : k}">${k}</button>`).join('')}</div>`;
+}
+function drawPin() {
+  const host = $('#pinhost'); if (!host) return;
+  host.innerHTML = `<h2 style="margin-top:0;display:block;text-align:center">${esc(PIN.title)}</h2>${pinPadHTML(PIN.buf, PIN.msg)}${PIN.extra || ''}`;
+}
+function showLock() {
+  if ($('#lock')) return;
+  const ov = document.createElement('div'); ov.id = 'lock'; ov.className = 'onb'; ov.style.zIndex = 120;
+  ov.innerHTML = `<div class="inner" style="text-align:center"><div style="font-size:56px;margin-top:40px">🔒</div><div id="pinhost"></div></div>`;
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  PIN = { mode: 'unlock', title: 'הכסף שלנו', buf: '', msg: 'הקלידו קוד נעילה', extra: '<p class="mt"><button class="mini" style="text-decoration:underline;min-height:44px" data-act="pinforgot">שכחתי את הקוד</button></p>' };
+  drawPin();
+}
+function unlockDone() { const l = $('#lock'); if (l) l.remove(); document.body.style.overflow = ''; PIN = null; pinFails = 0; maybeAutoReport(); }
+function maybeAutoReport() {
+  try {
+    const lk = addM(curKey(), -1);
+    if (!S.onboarded || $('#onb') || $('#lock') || $('#ov')) return;
+    if (txLive().length >= 5 && S.reportSeen !== lk && cs(lk).varTx.length >= 5) { S.reportSeen = lk; save(); openReport(lk); toast('חודש חדש התחיל. זה הסיכום של החודש שנסגר.'); }
+  } catch (e) { }
+}
+async function pinKey(k) {
+  if (!PIN) return;
+  if (Date.now() < pinBlockedUntil) { PIN.msg = 'נסו שוב בעוד רגע'; drawPin(); return; }
+  if (k === '⌫') PIN.buf = PIN.buf.slice(0, -1); else if (PIN.buf.length < 4) PIN.buf += k;
+  PIN.msg = PIN.mode === 'unlock' ? 'הקלידו קוד נעילה' : PIN.msg; drawPin();
+  if (PIN.buf.length < 4) return;
+  const buf = PIN.buf;
+  if (PIN.mode === 'unlock' || PIN.mode === 'verify') {
+    const ok = S.pin && (await pinHash(buf, S.pin.salt)) === S.pin.hash;
+    if (ok) { if (PIN.mode === 'unlock') unlockDone(); else { const cb = PIN.cb; PIN = null; cb(); } return; }
+    pinFails++; PIN.buf = ''; PIN.msg = 'הקוד לא נכון'; if (pinFails >= 5) { pinBlockedUntil = Date.now() + 30000; pinFails = 0; PIN.msg = 'יותר מדי ניסיונות. נסו שוב בעוד 30 שניות'; } buzz(); drawPin(); return;
+  }
+  if (PIN.mode === 'new') { PIN = { mode: 'confirm', title: 'הקלידו שוב לאישור', buf: '', first: buf, msg: '' }; drawPin(); return; }
+  if (PIN.mode === 'confirm') {
+    if (buf !== PIN.first) { PIN = { mode: 'new', title: 'קוד נעילה חדש (4 ספרות)', buf: '', msg: 'הקודים לא תאמו, ננסה שוב' }; drawPin(); return; }
+    const salt = uid(); S.pin = { salt, hash: await pinHash(buf, salt), at: nowISO() }; save(); PIN = null; closeSheet(); render(); toast('קוד הנעילה נקבע. האפליקציה תינעל בכל פתיחה.');
+  }
+}
+function openPinSheet() {
+  if (S.pin) {
+    openSheet(`<h2>קוד נעילה<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2><p class="mini">האפליקציה נעולה בקוד. הקוד שומר מעיני סקרנים בטלפון, הוא לא הצפנה של הנתונים.</p><button class="btn danger block mt" data-act="pinoff">ביטול קוד הנעילה</button>`);
+  } else {
+    openSheet('<div id="pinhost"></div><p class="mini mt" style="text-align:center">הקוד נשמר רק בטלפון הזה, ובגיבוי הוא לא נשלח. אם תשכחו אותו, אפשר לאפס את האפליקציה ולטעון גיבוי.</p>');
+    PIN = { mode: 'new', title: 'קוד נעילה חדש (4 ספרות)', buf: '', msg: '' }; drawPin();
+  }
+}
+function pinOff() {
+  closeSheet();
+  openSheet('<div id="pinhost"></div>');
+  PIN = { mode: 'verify', title: 'הקלידו את הקוד הנוכחי', buf: '', msg: '', cb: () => { S.pin = null; save(); closeSheet(); render(); toast('קוד הנעילה בוטל'); } }; drawPin();
+}
+function pinForgot() {
+  const host = $('#pinhost'); if (!host) return;
+  host.innerHTML = `<h2 style="margin-top:20px">איפוס האפליקציה</h2><p class="mini">איפוס מוחק את כל הנתונים בטלפון הזה (כולל העותקים הפנימיים). אחר כך טוענים גיבוי: מתיקיית ההורדות (הגיבוי האוטומטי) או מטלגרם.</p><button class="btn danger block mt" data-act="pinwipe">כן, לאפס ולמחוק הכל</button><button class="btn ghost block mt" data-act="pincancel">חזרה</button>`;
+}
+var ACT_LATE = { pinwipe: async () => { await wipeAll(); location.reload(); }, pincancel: () => { PIN = { mode: 'unlock', title: 'הכסף שלנו', buf: '', msg: 'הקלידו קוד נעילה', extra: '<p class="mt"><button class="mini" style="text-decoration:underline;min-height:44px" data-act="pinforgot">שכחתי את הקוד</button></p>' }; drawPin(); } };
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (S && S.pin && hiddenAt && Date.now() - hiddenAt > 120000) showLock();
+});
+
+/* ================= hosted-page mode (no downloads / share / print) ================= */
+function copyOut() {
+  const ta = $('#outtxt'); if (!ta) return;
+  const fallback = () => { ta.focus(); ta.select(); try { ta.setSelectionRange(0, ta.value.length); } catch (e) { } toast('סומן. לחצו "העתק" בתפריט של הטלפון.'); };
+  try { navigator.clipboard.writeText(ta.value).then(() => toast('הועתק. הדביקו בטלגרם ושלחו.'), fallback); } catch (e) { fallback(); }
+}
+function outSheet(title, text, hint) {
+  openSheet(`<h2>${esc(title)}<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">${esc(hint)}</p>
+  <div class="field mt"><textarea id="outtxt" rows="6" readonly></textarea></div>
+  <button class="btn coin block mt" id="outcopy">📋 העתקה</button>`);
+  $('#outtxt').value = text; $('#outcopy').onclick = copyOut;
+}
+function openReportView(html) {
+  closeSheet(true);
+  const d = document.createElement('div'); d.id = 'rview';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#fff;display:flex;flex-direction:column';
+  d.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;background:#0B5563;color:#fff;font:600 15px Rubik,system-ui,sans-serif"><span>הדוח. לשליחה צלמו מסך או גללו וצלמו חלקים.</span><button id="rvx" style="background:#fff;color:#0B5563;border:0;border-radius:10px;padding:8px 14px;font:600 15px inherit;min-height:44px">סגירה</button></div><iframe style="flex:1;border:0;width:100%;background:#fff"></iframe>`;
+  document.body.appendChild(d); d.querySelector('iframe').srcdoc = html; $('#rvx').onclick = () => d.remove();
+}
+/* ================= sheets & actions ================= */
+let lastFocus = null;
+function openSheet(html, opts = {}) {
+  closeSheet(true); clearTimeout(toastT); { const tt = $('#toast'); if (tt) tt.innerHTML = ''; }
+  lastFocus = document.activeElement;
+  const ov = document.createElement('div'); ov.className = 'ov'; ov.id = 'ov';
+  ov.innerHTML = `<div class="sheet ${opts.full ? 'full' : ''}" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) closeSheet(); });
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  return ov;
+}
+function closeSheet(silent) {
+  const ov = $('#ov'); if (ov) ov.remove();
+  document.body.style.overflow = '';
+  if (!silent && lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (e) { }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+let toastT = null;
+function toast(msg, undo) {
+  const t = $('#toast'); t.innerHTML = `<div role="status"><span>${esc(msg)}</span>${undo ? '<button id="undo">בטל</button>' : ''}</div>`;
+  if (undo) $('#undo').onclick = () => { undo(); t.innerHTML = ''; };
+  clearTimeout(toastT); toastT = setTimeout(() => t.innerHTML = '', undo ? 8000 : 2800);
+}
+const buzz = () => { try { navigator.vibrate && navigator.vibrate(12); } catch (e) { } };
+function downloadText(name, text) {
+  if (ART) { outSheet('גיבוי', text, 'העתיקו והדביקו בטלגרם ל"הודעות שמורות". בטלפון השני: גיבוי ושיתוף ← הדביקו ← טעינה.'); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ---------- add / edit transaction ---------- */
+let D = null;
+function newDraft() { return { id: null, amt: '', cat: null, who: S.lastUsed.who, method: S.lastUsed.method, inst: 1, date: today(), note: '', why: '', holder: null, talked: false, more: false }; }
+function openAdd(t) {
+  D = t ? { id: t.id, amt: String(t.amt), cat: t.cat, who: t.who, method: t.method || 'card', inst: t.inst > 1 ? t.inst : 1, date: t.date, note: t.note || '', why: t.why || '', holder: t.holder == null ? null : t.holder, talked: !!t.talked, more: t.inst > 1 || t.date !== today() || !!t.note || !!t.talked } : newDraft();
+  openSheet('<div id="addbody"></div>', { full: true }); drawAdd();
+}
+function hourly(who) {
+  const inc = live(S.incomes); const h = +S.settings.hours || 182;
+  let v = who === 2 || !inc.some(i => i.who === who) ? incomeTotal() / 2 : sum(inc.filter(i => i.who === who).map(i => i.amount));
+  return v > 0 ? v / h : 0;
+}
+function quickCombos() {
+  const since = addD(today(), -90), m = {};
+  for (const t of txLive()) if (t.date >= since && !(t.inst > 1)) { const k = t.cat + '|' + Math.round(t.amt); (m[k] = m[k] || { cat: t.cat, amt: Math.round(t.amt), n: 0, who: t.who, method: t.method }).n++; }
+  return Object.values(m).filter(x => x.n >= 2).sort((a, b) => b.n - a.n).slice(0, 4);
+}
+function drawAdd() {
+  const body = $('#addbody'); if (!body) return;
+  const sc = body.parentElement.scrollTop;
+  const a = parseFloat(D.amt) || 0, hr = hourly(D.who);
+  const hint = a >= 30 && hr > 0 ? `זה בערך ${nf1.format(a / hr)} שעות עבודה` : '';
+  const qc = !D.id ? quickCombos() : [];
+  const ok = a > 0 && D.cat;
+  const isCash = D.cat === 'cash';
+  body.innerHTML = `<h2>${isCash ? (D.id ? 'עריכת משיכה' : 'משיכה מהכספומט') : D.id ? 'עריכת הוצאה' : 'הוצאה חדשה'}<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  ${qc.length ? `<div class="chips" style="margin-bottom:6px">${qc.map((q, i) => `<button class="chip" data-act="quick" data-i="${i}">${catById(q.cat).e} ${money(q.amt)}</button>`).join('')}</div>` : ''}
+  <div class="amtShow" aria-live="polite">${D.amt === '' ? '<span style="opacity:.3">0</span>' : esc(D.amt)}<small> ₪</small></div>
+  <div class="hint">${hint}</div>
+  <div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map(k => `<button data-act="key" data-k="${k}" aria-label="${k === '⌫' ? 'מחיקה' : k}">${k}</button>`).join('')}</div>
+  <div class="cats">${VCATS.map(c => `<button class="cat" data-act="cat" data-id="${c.id}" aria-pressed="${D.cat === c.id}"><span>${c.e}</span>${c.n}</button>`).join('')}</div>
+  ${isCash ? '<p class="mini" style="margin:-4px 0 6px">המשיכה נרשמת עם תאריך ושעה אוטומטית. אחר כך כל קנייה במזומן נרשמת כהוצאה רגילה עם "מזומן" ב"איך שילמו".</p>' : ''}
+  <div class="lbl">${isCash ? 'מאיזה חשבון' : 'מי שילם'}</div>
+  <div class="seg"><button aria-pressed="${D.who === 0}" data-act="who" data-v="0">${esc(names()[0])}</button><button aria-pressed="${D.who === 1}" data-act="who" data-v="1">${esc(names()[1])}</button><button aria-pressed="${D.who === 2}" data-act="who" data-v="2">שנינו</button></div>
+  ${isCash ? `<div class="lbl">למי נמסר המזומן</div>
+  <div class="seg"><button aria-pressed="${D.holder === 0}" data-act="holder" data-v="0">${esc(names()[0])}</button><button aria-pressed="${D.holder === 1}" data-act="holder" data-v="1">${esc(names()[1])}</button><button aria-pressed="${D.holder === 2}" data-act="holder" data-v="2">משותף</button></div>` : `<div class="lbl">איך שילמו</div>
+  <div class="seg">${Object.entries(METHODS).map(([k, l]) => `<button aria-pressed="${D.method === k}" data-act="method" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="lbl">למה (לא חובה)</div>
+  <div class="chips">${WHYS.map(w => `<button class="chip sm" aria-pressed="${D.why === w}" data-act="why1" data-v="${esc(w)}">${esc(w)}</button>`).join('')}</div>`}
+  <details class="fold" ${D.more ? 'open' : ''}><summary>עוד: תשלומים, תאריך, הערה<span>⌄</span></summary>
+   <div class="field"><label for="dnote">הערה (למשל: וולט, ספוטיפיי)</label><input id="dnote" value="${esc(D.note)}" maxlength="60" data-in="note"></div>
+   <div class="field"><label for="ddate">תאריך</label><div class="row2"><input id="ddate" type="date" value="${esc(D.date)}" min="2000-01-01" max="${today()}" data-in="date"><button class="btn ghost sm" data-act="yday" style="flex:none">אתמול</button></div></div>
+   <div class="field"><label for="dinst">מספר תשלומים</label><div class="row2"><select id="dinst" data-in="inst">${[1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24, 36].map(n => `<option value="${n}" ${D.inst === n ? 'selected' : ''}>${n === 1 ? 'תשלום אחד' : n + ' תשלומים'}</option>`).join('')}</select></div></div>
+   ${a >= S.settings.approve ? `<label class="sw field"><span>דיברנו על ההוצאה הזאת ביחד</span><input type="checkbox" ${D.talked ? 'checked' : ''} data-in="talked"></label>` : ''}
+  </details>
+  <div class="saveBar"><div class="mini" style="text-align:center;margin-bottom:6px">${isCash ? `מהחשבון של <b>${esc(whoName(D.who))}</b> · נמסר ל<b>${esc(whoName(D.holder == null ? D.who : D.holder))}</b>` : `שילם: <b>${esc(whoName(D.who))}</b> · ${METHODS[D.method]}${D.why ? ' · ' + esc(D.why) : ''}`}</div><div class="row2">${D.id ? '<button class="btn danger" style="flex:none" data-act="deltx">מחיקה</button>' : ''}<button class="btn coin block" data-act="savetx" ${ok ? '' : 'disabled'}>${ok ? (D.id ? 'שמירה' : 'שמירה · ' + moneyT(a)) : (a > 0 ? 'בחרו קטגוריה' : 'הקלידו סכום')}</button></div></div>`;
+  body.parentElement.scrollTop = sc;
+}
+function saveTx(fromDraft) {
+  const d = fromDraft || D, amt = Math.round(parseFloat(d.amt) * 100) / 100;
+  if (!(amt > 0) || !d.cat) return;
+  const dd = d.date && okDate(d.date) ? (d.date > today() ? today() : d.date) : today();
+  const t = { id: d.id || uid(), date: dd, amt, cat: d.cat, who: d.who, method: d.method, note: (d.note || '').trim(), why: (d.why || '').trim().slice(0, 40), inst: d.inst > 1 ? d.inst : 0, talked: !!d.talked, updatedAt: nowISO() };
+  if (d.cat === 'cash') t.holder = d.holder == null ? d.who : d.holder;
+  const i = S.tx.findIndex(x => x.id === t.id);
+  const prev = i >= 0 ? S.tx[i] : null;
+  t.at = prev && prev.at ? prev.at : nowISO();
+  if (prev && prev.demo) t.demo = true;
+  if (i >= 0) S.tx[i] = t; else S.tx.push(t);
+  if (t.cat === 'cash') { S.lastCashWho = d.who; S.lastCashHolder = t.holder; } else S.lastUsed = { who: d.who, method: d.method };
+  save(); buzz();
+  return { t, prev };
+}
+function deleteTx(id) {
+  const i = S.tx.findIndex(x => x.id === id); if (i < 0) return;
+  const old = S.tx[i]; S.tx[i] = { ...old, deleted: true, updatedAt: nowISO() }; save(); closeSheet(); render();
+  toast('נמחק', () => { S.tx[i] = { ...old, updatedAt: nowISO() }; save(); render(); });
+}
+
+/* ---------- generic form ---------- */
+function formSheet(title, fields, onSave, onDelete) {
+  const f = x => {
+    const v = x.val ?? '';
+    if (x.type === 'select') return `<div class="field"><label>${x.label}</label><select name="${x.k}">${x.opts.map(([a, b]) => `<option value="${esc(a)}" ${String(v) === String(a) ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></div>`;
+    if (x.type === 'check') return `<label class="sw field"><span>${x.label}</span><input type="checkbox" name="${x.k}" ${v ? 'checked' : ''}></label>`;
+    return `<div class="field"><label>${x.label}</label><input name="${x.k}" type="${x.type || 'text'}" ${x.type === 'number' ? 'inputmode="decimal" min="0"' : ''} value="${esc(v)}" placeholder="${esc(x.ph || '')}"></div>`;
+  };
+  openSheet(`<h2>${title}<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2><form id="frm" onsubmit="return false">${fields.map(f).join('')}<div class="row2 mt">${onDelete ? '<button type="button" class="btn danger" id="fdel" style="flex:none">מחיקה</button>' : ''}<button type="submit" class="btn block" id="fsave">שמירה</button></div></form>`);
+  const frm = $('#frm');
+  frm.onsubmit = e => { e.preventDefault(); const o = {}; for (const x of fields) { const el = frm.elements[x.k]; o[x.k] = x.type === 'check' ? el.checked : x.type === 'number' ? (parseFloat(el.value) || 0) : el.value.trim(); } if (onSave(o) !== false) { closeSheet(); render(); } };
+  if (onDelete) $('#fdel').onclick = () => { onDelete(); closeSheet(); render(); };
+  const first = frm.elements[0]; if (first && !fields[0].val) setTimeout(() => first.focus(), 60);
+}
+const whoOpts = () => [[0, names()[0]], [1, names()[1]], [2, 'שנינו']];
+const fixCatOpts = () => CATS.map(c => [c.id, c.e + ' ' + c.n]);
+function editIncome(id) {
+  const x = id ? S.incomes.find(i => i.id === id) : null;
+  formSheet(x ? 'עריכת הכנסה' : 'הכנסה חדשה', [{ k: 'name', label: 'שם', val: x ? x.name : '', ph: 'משכורת' }, { k: 'amount', label: 'סכום נטו בחודש', type: 'number', val: x ? x.amount : '' }, { k: 'who', label: 'של מי', type: 'select', opts: whoOpts().slice(0, 2), val: x ? x.who : 0 }],
+    o => { if (!o.amount) { toast('הקלידו סכום'); return false; } const rec = { id: x ? x.id : uid(), name: o.name || 'הכנסה', amount: o.amount, who: +o.who, updatedAt: nowISO() }; if (x) Object.assign(x, rec); else S.incomes.push(rec); save(); },
+    x ? () => { x.deleted = true; x.updatedAt = nowISO(); save(); toast('נמחק', () => { x.deleted = false; x.updatedAt = nowISO(); save(); render(); }); } : null);
+}
+function editFixed(id) {
+  const x = id ? S.fixed.find(i => i.id === id) : null;
+  formSheet(x ? 'עריכת הוצאה קבועה' : 'הוצאה קבועה חדשה', [{ k: 'name', label: 'שם', val: x ? x.name : '', ph: 'ארנונה' }, { k: 'amount', label: 'סכום בחודש', type: 'number', val: x ? x.amount : '' }, { k: 'cat', label: 'קטגוריה', type: 'select', opts: fixCatOpts(), val: x ? x.cat : 'bills' }, { k: 'who', label: 'מי משלם', type: 'select', opts: whoOpts(), val: x ? x.who : 2 }, { k: 'sub', label: 'זה מנוי שאפשר לבטל', type: 'check', val: x ? x.sub : false }, { k: 'active', label: 'פעילה', type: 'check', val: x ? x.active !== false : true }],
+    o => { if (!o.name || !o.amount) { toast('הקלידו שם וסכום'); return false; } const rec = { id: x ? x.id : uid(), name: o.name, amount: o.amount, cat: o.cat, who: +o.who, sub: o.sub, active: o.active, updatedAt: nowISO() }; if (x) Object.assign(x, rec); else S.fixed.push(rec); save(); },
+    x ? () => { x.deleted = true; x.updatedAt = nowISO(); save(); toast('נמחק', () => { x.deleted = false; x.updatedAt = nowISO(); save(); render(); }); } : null);
+}
+function editLump(id) {
+  const x = id ? S.lumps.find(i => i.id === id) : null;
+  formSheet(x ? 'עריכת הוצאה שנתית' : 'הוצאה שנתית חדשה', [{ k: 'name', label: 'שם', val: x ? x.name : '', ph: 'ביטוח רכב' }, { k: 'amountYear', label: 'סכום לשנה', type: 'number', val: x ? x.amountYear : '' }],
+    o => { if (!o.name || !o.amountYear) { toast('הקלידו שם וסכום'); return false; } const rec = { id: x ? x.id : uid(), name: o.name, amountYear: o.amountYear, updatedAt: nowISO() }; if (x) Object.assign(x, rec); else S.lumps.push(rec); save(); },
+    x ? () => { x.deleted = true; x.updatedAt = nowISO(); save(); toast('נמחק', () => { x.deleted = false; x.updatedAt = nowISO(); save(); render(); }); } : null);
+}
+function openWhoAmI(force) {
+  const n = names();
+  openSheet(`<h2>של מי הטלפון הזה?${force ? '' : '<button class="x" data-act="closesheet" aria-label="סגירה">×</button>'}</h2>
+  <p class="mini">כל טלפון יודע מי משתמש בו. ככה ההוצאות נרשמות אוטומטית על השם הנכון, והדוחות מציינים מי הפיק אותם. אפשר לשנות בכל רגע.</p>
+  <div class="row2 mt"><button class="btn block ${S.settings.me === 0 ? '' : 'ghost'}" data-act="setme" data-v="0">👤 ${esc(n[0])}</button><button class="btn block ${S.settings.me === 1 ? '' : 'ghost'}" data-act="setme" data-v="1">👤 ${esc(n[1])}</button></div>
+  <p class="mini mt">לשינוי השמות: עוד ← הגדרות.</p>`, { noClose: !!force });
+}
+function openSettings() {
+  const s = S.settings;
+  formSheet('הגדרות', [
+    { k: 'n0', label: 'שם 1', val: s.names[0] }, { k: 'n1', label: 'שם 2', val: s.names[1] },
+    { k: 'me', label: 'הטלפון הזה של (0 = שם 1, 1 = שם 2)', type: 'number', val: s.me == null ? 0 : s.me },
+    { k: 'payday', label: 'באיזה יום בחודש נכנסת המשכורת (1–28)', type: 'number', val: s.payday },
+    { k: 'savings', label: 'חיסכון קבוע בחודש', type: 'number', val: s.savings },
+    { k: 'small', label: 'קנייה קטנה: עד כמה ₪?', type: 'number', val: s.small },
+    { k: 'approve', label: 'הוצאה גדולה: מעל כמה ₪? (נסמן אותה לשיחה)', type: 'number', val: s.approve },
+    { k: 'hours', label: 'שעות עבודה בחודש (להמרת סכום לשעות עבודה)', type: 'number', val: s.hours },
+    { k: 'autoBk', label: 'גיבוי אוטומטי לתיקיית ההורדות פעם בשבוע ובכל תחילת חודש (1 = כן, 0 = לא)', type: 'number', val: s.autoBk === false ? 0 : 1 }],
+    o => { s.names = [o.n0 || 'חמזה', o.n1 || 'רורו']; s.me = +o.me === 1 ? 1 : 0; s.payday = Math.min(28, Math.max(1, Math.round(o.payday) || 10)); s.savings = o.savings; s.small = o.small || 50; s.approve = o.approve || 500; s.hours = o.hours || 182; s.autoBk = +o.autoBk !== 0; s.updatedAt = nowISO(); T.key = null; save(); });
+}
+
+/* ---------- import from card statement ---------- */
+let IMP = null;
+function openImport() {
+  openSheet(`<h2>ייבוא מדף אשראי<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">העתיקו את שורות העסקאות מהאתר או מהאפליקציה של חברת האשראי והדביקו כאן, או בחרו קובץ CSV. שום דבר לא יוצא מהטלפון.</p>
+  <div class="field mt"><textarea id="imptxt" rows="6" placeholder="12/10/2026 שופרסל דיל 184.90"></textarea></div>
+  <div class="row2"><label class="btn ghost" style="cursor:pointer">בחירת קובץ<input id="impfile" type="file" accept=".csv,.txt,text/*" hidden></label><button class="btn" data-act="impparse">קראו</button></div>
+  <div id="impout"></div>`);
+  $('#impfile').onchange = async e => { const f = e.target.files[0]; if (f) { $('#imptxt').value = await f.text(); parseImportUI(); } };
+}
+function parseImportUI() {
+  const rows = parseImport($('#imptxt').value);
+  const out = $('#impout');
+  if (!rows.length) { out.innerHTML = `<div class="card empty mt">לא זיהיתי שורות. כל שורה צריכה תאריך (12/10/2026), בית עסק וסכום. אם מדובר בקובץ אקסל, שמרו אותו כ־CSV.</div>`; return; }
+  const exist = new Set(txLive().map(t => `${t.date}|${Math.round(t.amt)}`));
+  const fixNames = fixedList().map(f => f.name.toLowerCase());
+  IMP = rows.map((r, i) => {
+    const dup = exist.has(`${r.date}|${Math.round(r.amt)}`); const fx = fixNames.some(n => n && r.merch.toLowerCase().includes(n));
+    return { ...r, i, cat: guessCat(r.merch), on: !dup && !fx, note: dup ? 'כבר קיים' : fx ? 'כבר מוגדר כקבוע' : '' };
+  });
+  out.innerHTML = `<div class="lbl">מי משלם בכרטיס הזה</div><div class="seg"><button aria-pressed="true" data-act="impwho" data-v="0">${esc(names()[0])}</button><button aria-pressed="false" data-act="impwho" data-v="1">${esc(names()[1])}</button><button aria-pressed="false" data-act="impwho" data-v="2">שנינו</button></div>
+  <div class="lbl">${rows.length === 1 ? 'זוהתה שורה אחת' : 'זוהו ' + rows.length + ' שורות'}${rows.skipped ? ` (${rows.skipped} החזרים דולגו)` : ''}. הסירו מה שלא רוצים ותקנו קטגוריות:</div>
+  <div class="list">${IMP.map(r => `<div class="item" style="flex-wrap:wrap"><input type="checkbox" style="width:22px;min-height:0" data-imp="on" data-i="${r.i}" ${r.on ? 'checked' : ''} aria-label="כלול"><span class="t"><b>${esc(r.merch)}</b><small>${fmtShort(r.date)} ${r.note ? '· ' + r.note : ''}</small></span><span class="a">${money(r.amt)}</span><select data-imp="cat" data-i="${r.i}" style="flex-basis:100%;min-height:40px">${VCATS.map(c => `<option value="${c.id}" ${c.id === r.cat ? 'selected' : ''}>${c.e} ${c.n}</option>`).join('')}</select></div>`).join('')}</div>
+  <div class="saveBar"><button class="btn coin block" data-act="impsave">הוספה</button></div>`;
+  IMP.who = 0;
+}
+function saveImport() {
+  const rows = IMP.filter(r => r.on); if (!rows.length) { toast('לא נבחרו שורות'); return; }
+  const stamp = nowISO();
+  for (const r of rows) {
+    S.tx.push({ id: uid(), date: r.date, amt: r.amt, cat: r.cat, who: IMP.who, method: 'card', note: r.merch.slice(0, 40), inst: 0, updatedAt: stamp });
+    S.rules[r.merch.trim().toLowerCase().replace(/\s+/g, ' ')] = r.cat;
+  }
+  save(); closeSheet(); render(); toast(rows.length === 1 ? 'נוספה הוצאה אחת' : `נוספו ${rows.length} הוצאות`); buzz();
+}
+
+/* ---------- backup & sync ---------- */
+function openBackup() {
+  openSheet(`<h2>גיבוי ושיתוף בין הטלפונים<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">הנתונים נשמרים רק על הטלפון. כדי לגבות, או כדי לחבר את הטלפון של בן/בת הזוג, שולחים קובץ בטלגרם וטוענים אותו בצד השני. הטעינה רק מוסיפה מה שחדש ולא מוחקת כלום, אז אפשר לעשות את זה בשני הכיוונים בכל שבוע.</p>
+  <div class="card mt"><b>שליחה</b><p class="mini">${S.lastBackup ? 'גיבוי אחרון: ' + new Date(S.lastBackup).toLocaleString('he-IL') : 'עוד לא גיביתם'}</p>
+   <button class="btn coin block mt" data-act="share">📤 שלחו בטלגרם (או כל אפליקציה)</button>
+   <div class="row2 mt"><button class="btn ghost sm" data-act="dl">הורדה כקובץ</button><button class="btn ghost sm" data-act="copytxt">העתקה כטקסט</button></div></div>
+  ${ART ? '' : `<div class="card"><b>עותק מלא: האפליקציה + כל הנתונים בקובץ אחד</b><p class="mini">קובץ HTML אחד שמכיל את האפליקציה ואת כל הרישומים. מי שפותח אותו מקבל הכל מוכן, בלי לטעון גיבוי. מתאים לטלפון של בן/בת הזוג, ולשמירה בטלגרם כעותק ביטחון.</p><button class="btn block mt" data-act="fullcopy">📦 שמירת עותק מלא</button></div>`}
+  <div class="card"><b>טעינה</b><p class="mini">בחרו את הקובץ שקיבלתם, או הדביקו את הטקסט.</p>
+   <div class="row2 mt"><label class="btn ghost" style="cursor:pointer">בחירת קובץ<input id="bkfile" type="file" accept=".txt,.json,text/*" hidden></label></div>
+   <div class="field mt"><textarea id="bktxt" rows="3" placeholder="או הדביקו כאן"></textarea></div>
+   <button class="btn block" data-act="loadbk">טעינה ומיזוג</button></div>`);
+  $('#bkfile').onchange = async e => { const f = e.target.files[0]; if (f) { $('#bktxt').value = await f.text(); loadBackup(); } };
+}
+async function shareBackup() {
+  const txt = exportText(), name = `hakesef-backup-${today()}.txt`;
+  if (ART) { downloadText(name, txt); return; }
+  try {
+    const file = new File([txt], name, { type: 'text/plain' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'גיבוי הכסף שלנו' }); closeSheet(); render(); toast('הגיבוי נשלח'); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  downloadText(name, txt); toast('הקובץ ירד למכשיר. שלחו אותו בטלגרם ל"הודעות שמורות".'); render();
+}
+function loadBackup() {
+  try { const added = importMerge($('#bktxt').value); closeSheet(); render(); if ($('#onb') && S.onboarded) { $('#onb').remove(); OB = null; document.body.style.overflow = ''; go('home'); }
+    toast(added > 0 ? (added === 1 ? 'נטען רישום חדש אחד' : `נטענו ${added} רישומים חדשים`) : 'הנתונים נטענו, הכל מעודכן'); }
+  catch (e) { toast(e.message); }
+}
+
+/* ---------- guide ---------- */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; if (S) render(); });
+window.addEventListener('appinstalled', () => { deferredInstall = null; toast('האפליקציה נוספה למסך הבית. פתחו אותה מהאייקון.'); if (S) render(); });
+function showIosHint() {
+  const old = $('#ioshint'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'ioshint'; d.className = 'iosHint';
+  const ico = '<svg class="shareIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="M8 7l4-4 4 4"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>';
+  d.innerHTML = `<button class="x" id="ioshintx" aria-label="סגירה">×</button><b>אייקון במסך הבית, 3 לחיצות</b>1. לחצו על כפתור השיתוף ${ico} בשורה התחתונה של Safari.<br>2. גללו ובחרו <b style="display:inline">"הוסף למסך הבית"</b>.<br>3. לחצו "הוסף". מעכשיו פותחים רק מהאייקון ₪.<p class="mini mt">${/CriOS|FxiOS|Telegram|Instagram|FBAN/.test(navigator.userAgent) ? 'נראה שזה לא Safari. פתחו את הקישור ב־Safari (לחיצה על אייקון המצפן או "פתח ב־Safari") ואז חזרו לכאן.' : ''}</p>`;
+  document.body.appendChild(d); $('#ioshintx').onclick = () => d.remove();
+}
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+async function installNow() {
+  if (deferredInstall) { try { deferredInstall.prompt(); const r = await deferredInstall.userChoice; deferredInstall = null; if (r && r.outcome === 'accepted') { toast('האפליקציה נוספה למסך הבית'); closeSheet(); } } catch (e) { } return; }
+  openGuide();
+}
+function openGuide() {
+  const ios = isIOS(), file = location.protocol === 'file:';
+  if (isStandalone()) { openSheet(`<h2>מותקן<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2><p>האפליקציה כבר פועלת מהאייקון במסך הבית. אין צורך בעוד צעד.</p>`); return; }
+  const and = `<div class="card${ios ? '' : ' hl'}"><b>אנדרואיד (Chrome)</b><ol style="padding-inline-start:20px;margin:8px 0 0">${file ? '<li><b>קובץ שנפתח מטלגרם או מההורדות לא ניתן להוספה למסך הבית ב־Chrome</b> (האפשרות לא מופיעה בתפריט לקבצים). צריך את הקישור של האפליקציה, ואז:</li><li>פותחים את הקישור ב־Chrome.</li>' : '<li>פותחים את הקישור ב־Chrome (לא בתוך טלגרם).</li>'}<li>לוחצים על שלוש הנקודות <b>⋮</b> למעלה בצד.</li><li>בוחרים <b>"הוספה למסך הבית"</b> (או "התקנת אפליקציה").</li><li>לוחצים "הוספה". האייקון ₪ מופיע במסך הבית, ופותחים רק ממנו.</li></ol></div>`;
+  const ip = `<div class="card${ios ? ' hl' : ''}"><b>אייפון (Safari)</b>${file ? '<p class="mini" style="margin:6px 0 0">באייפון קובץ שנשלח בטלגרם לא ניתן להוספה למסך הבית. צריך את הקישור של האפליקציה (הקישור שנשלח בטלגרם), ואז:</p>' : ''}<ol style="padding-inline-start:20px;margin:8px 0 0"><li>פותחים את הקישור ב־<b>Safari</b> (לא בתוך טלגרם: לוחצים על אייקון המצפן / "פתח ב־Safari").</li><li>לוחצים על כפתור השיתוף <b>⎙</b> (ריבוע עם חץ למעלה) בתחתית המסך.</li><li>גוללים ובוחרים <b>"הוסף למסך הבית"</b> ← "הוסף".</li><li>סוגרים את Safari ופותחים רק מהאייקון ₪. כך הנתונים נשמרים.</li></ol></div>`;
+  openSheet(`<h2>אייקון במסך הבית<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">הדפדפן לא מאפשר לאפליקציה להוסיף את עצמה למסך הבית בלחיצה אחת, זה תמיד דרך תפריט הדפדפן. לוקח 10 שניות:</p>
+  ${deferredInstall ? '<button class="btn coin block mt" data-act="installnow">📲 התקנה עכשיו</button>' : ''}
+  ${ios ? ip + and : and + ip}
+  <p class="mini mt">בלי קישור: אפשר להמשיך לעבוד מהקובץ, פותחים אותו מאפליקציית "קבצים" ← Download ← Telegram. הנתונים נשמרים, רק בלי אייקון.</p>
+  <p class="mini">בשני המכשירים: פעם בשבוע ללחוץ על גיבוי ← "שלחו בטלגרם".</p>`);
+}
+
+/* ---------- onboarding ---------- */
+let OB = null;
+function startOnboarding() {
+  OB = { step: 0, n0: 'חמזה', n1: 'רורו', me: 0, payday: 10, i0: '', i1: '', fx: {} };
+  drawOnb();
+}
+const OB_FIX = [['שכר דירה / משכנתא', 'housing'], ['ארנונה', 'bills'], ['חשמל', 'bills'], ['מים וגז', 'bills'], ['אינטרנט וטלוויזיה', 'comms'], ['סלולר', 'comms'], ['ביטוחים', 'insur'], ['צהרון / גן', 'edu'], ['החזר הלוואה / רכב', 'loan']];
+function drawOnb() {
+  { const tt = $('#toast'); if (tt) tt.innerHTML = ''; }
+  let ov = $('#onb'); if (!ov) { ov = document.createElement('div'); ov.id = 'onb'; ov.className = 'onb'; document.body.appendChild(ov); document.body.style.overflow = 'hidden'; }
+  const dots = `<div class="dots">${[0, 1, 2, 3].map(i => `<i class="${i <= OB.step ? 'on' : ''}"></i>`).join('')}</div>`;
+  let b = '';
+  if (OB.step === 0) b = `<div class="obLogo">₪</div><h1>הכסף שלנו</h1><p class="lead">דשבורד חי לשניכם. רושמים הוצאה ב־5 שניות, רואים כמה נשאר מדמי השבוע ועד המשכורת, ואיפה הכסף הולך ולמה.</p>
+   <div class="row2"><div class="field"><label>שם 1</label><input id="ob0" value="${esc(OB.n0)}" placeholder="חמזה"></div><div class="field"><label>שם 2</label><input id="ob1" value="${esc(OB.n1)}" placeholder="רורו"></div></div>
+   <div class="lbl">הטלפון הזה של</div><div class="seg"><button aria-pressed="${OB.me === 0}" data-act="obme" data-v="0">${esc(OB.n0 || 'שם 1')}</button><button aria-pressed="${OB.me === 1}" data-act="obme" data-v="1">${esc(OB.n1 || 'שם 2')}</button></div>`;
+  if (OB.step === 1) b = `<h1>הכנסות</h1><p class="lead">המשכורות נטו (אחרי מס). אפשר לעדכן בכל רגע.</p>
+   <div class="field"><label>${esc(OB.n0 || 'אני')}</label><input id="obi0" type="number" inputmode="decimal" value="${OB.i0}" placeholder="₪ בחודש"></div><div class="field"><label>${esc(OB.n1 || 'בן/בת הזוג')}</label><input id="obi1" type="number" inputmode="decimal" value="${OB.i1}" placeholder="₪ בחודש"></div>
+   <div class="field"><label>באיזה יום בחודש נכנסת המשכורת?</label><select id="obp">${Array.from({ length: 28 }, (_, i) => i + 1).map(d => `<option ${d === OB.payday ? 'selected' : ''}>${d}</option>`).join('')}</select><p class="mini mt">החודש שלכם נספר מיום המשכורת ועד שלפני המשכורת הבאה, כי שם הכסף באמת מתחיל ונגמר.</p></div>`;
+  if (OB.step === 2) b = `<h1>הוצאות קבועות</h1><p class="lead">רק מה שחוזר כל חודש. מה שלא רלוונטי משאירים ריק.</p>${OB_FIX.map(([n], i) => `<div class="fx"><span>${n}</span><input type="number" inputmode="decimal" data-fx="${i}" value="${OB.fx[i] || ''}" placeholder="₪"></div>`).join('')}`;
+  if (OB.step === 3) b = `<div style="font-size:64px">✅</div><h1>הכל מוכן</h1><p class="lead">אחרי "מתחילים" תמצאו למטה כפתור צהוב עם +. כל הוצאה נרשמת ממנו, 5 שניות. אחרי כשבוע של תיעוד יתחיל להופיע החור הגדול.</p><div class="card"><b>טיפ אחד:</b> רשמו מיד אחרי הקנייה, בתור לקופה. 5 שניות.</div>`;
+  const last = OB.step === 3;
+  ov.innerHTML = `<div class="inner">${dots}${b}<div class="row2 mt2">${OB.step > 0 ? '<button class="btn ghost" data-act="obback" style="flex:none">חזרה</button>' : ''}<button class="btn ${last ? 'coin' : ''} block" data-act="obnext">${last ? 'מתחילים' : 'המשך'}</button></div>${last ? '<p class="mt" style="text-align:center"><button class="mini" style="text-decoration:underline" data-act="obdemo">רוצים קודם להציץ? טענו נתוני דמו</button></p>' : ''}${OB.step === 0 ? '<p class="mt mini" style="text-align:center">הכל נשמר רק על הטלפון שלכם.</p><p class="mt" style="text-align:center"><button style="text-decoration:underline;font-weight:600;min-height:44px" data-act="obbackup">כבר התחילו בטלפון אחר? טענו את הגיבוי</button></p>' : ''}</div>`;
+}
+function obCollect() {
+  if (OB.step === 0) { OB.n0 = $('#ob0').value.trim(); OB.n1 = $('#ob1').value.trim(); }
+  if (OB.step === 1) { OB.i0 = $('#obi0').value; OB.i1 = $('#obi1').value; OB.payday = +$('#obp').value; }
+  if (OB.step === 2) $$('[data-fx]').forEach(el => OB.fx[el.dataset.fx] = el.value);
+}
+function finishOnboarding(demo) {
+  const st = nowISO(), n0 = OB.n0 || 'אני', n1 = OB.n1 || 'בן/בת הזוג';
+  S.settings.names = [n0, n1]; S.settings.me = OB.me; S.lastUsed.who = OB.me; S.settings.payday = OB.payday; S.settings.updatedAt = st;
+  if (+OB.i0 > 0) S.incomes.push({ id: uid(), name: 'משכורת ' + n0, amount: +OB.i0, who: 0, updatedAt: st });
+  if (+OB.i1 > 0) S.incomes.push({ id: uid(), name: 'משכורת ' + n1, amount: +OB.i1, who: 1, updatedAt: st });
+  OB_FIX.forEach(([n, c], i) => { const v = +OB.fx[i]; if (v > 0) S.fixed.push({ id: uid(), name: n, amount: v, cat: c, who: 2, sub: false, active: true, updatedAt: st }); });
+  S.onboarded = true; if (demo) makeDemo(); save();
+  $('#onb').remove(); document.body.style.overflow = ''; OB = null; go('home'); { const f = $('#fab'); if (f) f.classList.add('pulse'); }
+}
+
+/* ================= event wiring ================= */
+const ACT = {
+  pinwipe: (...a) => ACT_LATE.pinwipe(...a), pincancel: (...a) => ACT_LATE.pincancel(...a),
+  add: () => openAdd(), closesheet: () => closeSheet(),
+  key: el => { const k = el.dataset.k; let a = D.amt; if (k === '⌫') a = a.slice(0, -1); else if (k === '.') { if (!a.includes('.')) a = (a || '0') + '.'; } else { if (a === '0') a = ''; if (a.replace('.', '').length < 8 && !/\.\d\d$/.test(a)) a += k; } D.amt = a; drawAdd(); buzz(); if (a.length === 1 && !D.cat) { const el = $('.cats'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } },
+  cat: el => { D.cat = el.dataset.id; if (D.cat === 'cash') { D.method = 'bank'; if (D.holder == null) D.holder = me(); } drawAdd(); },
+  addcat: el => { const d = newDraft(); d.cat = el.dataset.cat; d.who = me(); D = d; openSheet('<div id="addbody"></div>', { full: true }); drawAdd(); },
+  mode: el => setMode(el.dataset.v), why: el => { WHY = { cat: el.dataset.cat, mode: MODE, ref: MODE === 'week' ? weekStart() : curKey() }; go('more', 'why'); },
+  whoami: () => openWhoAmI(),
+  who: el => { D.who = +el.dataset.v; if (D.cat === 'cash' && D.holder == null) D.holder = D.who; drawAdd(); }, holder: el => { D.holder = +el.dataset.v; drawAdd(); }, why1: el => { D.why = D.why === el.dataset.v ? '' : el.dataset.v; drawAdd(); }, method: el => { D.method = el.dataset.v; drawAdd(); },
+  yday: () => { D.date = addD(today(), -1); D.more = true; drawAdd(); },
+  savetx: () => {
+    const wasNew = !D.id; const r = saveTx(); if (!r) return;
+    closeSheet(); render();
+    const big = r.t.amt >= S.settings.approve && !r.t.talked;
+    toast(`נרשם ${moneyT(r.t.amt)}${big && wasNew ? ' · הוצאה גדולה, כדאי לדבר עליה' : ''}`, wasNew ? () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); } : null);
+  },
+  deltx: () => deleteTx(D.id),
+  quick: el => { const q = quickCombos()[+el.dataset.i]; if (!q) return; const r = saveTx({ amt: String(q.amt), cat: q.cat, who: q.who, method: q.method || 'card', inst: 1, date: today(), note: '' }); closeSheet(); render(); toast(`נשמר ${moneyT(q.amt)} ${catById(q.cat).n}`, () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); }); },
+  edittx: el => { const t = S.tx.find(x => x.id === el.dataset.id); if (t) openAdd(t); },
+  goleaks: () => go('leaks'), gotx: () => go('tx'), gobudget: () => go('more', 'budget'), gocash: () => go('more', 'cash'), addcash: () => openAddCash(), gocouple: () => go('more', 'couple'), gomore: () => go('more'),
+  guide: () => openGuide(), installnow: () => installNow(), ioshint: () => showIosHint(), setme: el => { S.settings.me = +el.dataset.v; S.lastUsed.who = +el.dataset.v; S.settings.updatedAt = nowISO(); save(); closeSheet(); render(); toast(`הטלפון הזה של ${myName()}`); }, backup: () => openBackup(), restore: () => openRestore(), restoresnap: el => restoreSnap(el.dataset.key),
+  fullcopy: async () => { const h = fullCopyHTML(); if (!h) { toast('לא זמין בדפדפן הזה'); return; } const r = await shareOrDownload(`hakesef-shelanu-${today()}.html`, h, 'text/html'); if (r === 'downloaded') toast('העותק המלא ירד למכשיר. שלחו אותו בטלגרם.'); else if (r === 'shared') toast('העותק המלא נשלח'); render(); }, settings: () => openSettings(), import: () => openImport(),
+  demo: () => { makeDemo(); save(); render(); toast('נטענו נתוני דמו. אפשר למחוק ב"עוד".'); },
+  cleardemo: () => { if (confirm('למחוק את נתוני הדמו? רישומים שהוספתם בעצמכם יישארו.')) { clearDemo(); go('home'); } },
+  dis: el => { S.dismissed[el.dataset.k] = 1; save(); render(); },
+  subflag: el => { const k = el.dataset.key, v = el.dataset.v; S.flags.sub[k] = S.flags.sub[k] === v ? null : v; save(); render(); },
+  cyc: el => { const d = +el.dataset.d; const k = addM(T.key || curKey(), d); if (k <= curKey()) { T.key = k; render(); } },
+  twho: el => { T.who = el.dataset.v; render(); },
+  addinc: () => editIncome(), editinc: el => editIncome(el.dataset.id), addfix: () => editFixed(), editfix: el => editFixed(el.dataset.id), addlump: () => editLump(), editlump: el => editLump(el.dataset.id),
+  talked: el => { const t = S.tx.find(x => x.id === el.dataset.id); if (t) { t.talked = true; t.updatedAt = nowISO(); save(); render(); } },
+  meetdone: () => { const d = $('#decision'); S.meeting = { last: nowISO(), decision: d ? d.value : '' }; save(); render(); toast('נשמר. בהצלחה עם ההחלטה'); },
+  impparse: () => parseImportUI(), impwho: el => { IMP.who = +el.dataset.v; $$('[data-act=impwho]').forEach(b => b.setAttribute('aria-pressed', b === el)); }, impsave: () => saveImport(),
+  share: () => shareBackup(), dl: () => { downloadText(`hakesef-backup-${today()}.txt`, exportText()); if (!ART) { toast('הקובץ ירד למכשיר'); render(); } },
+  copytxt: async () => { try { await navigator.clipboard.writeText(exportText()); toast('הועתק. הדביקו בהודעה לעצמכם בטלגרם'); } catch (e) { toast('ההעתקה נחסמה, השתמשו בהורדה'); } },
+  loadbk: () => loadBackup(),
+  report: el => { const k = el.dataset.key; if (k) { S.reportSeen = k; save(); } openReport(k || curKey()); },
+  rptnav: el => { const k = addM(RK, +el.dataset.d); if (cycleKeys().includes(k) && k <= curKey()) { RK = k; drawReport(); } },
+  rptshare: async () => { const r = await shareOrDownload(`hakesef-report-${RK}.html`, reportHTML(RK), 'text/html'); if (r === 'downloaded') toast('הקובץ ירד למכשיר. שלחו אותו בטלגרם.'); },
+  rptprint: () => printHTML(reportHTML(RK)),
+  rptcsv: async () => { const r = await shareOrDownload(`hakesef-transactions-${RK}.csv`, csvText(RK), 'text/csv'); if (r === 'downloaded') toast('הקובץ ירד למכשיר'); },
+  pinsheet: () => openPinSheet(), pinkey: el => pinKey(el.dataset.k), pinoff: () => pinOff(), pinforgot: () => pinForgot(),
+  obme: el => { obCollect(); OB.me = +el.dataset.v; drawOnb(); },
+  obnext: () => { obCollect(); if (OB.step === 0 && !OB.n0) { toast('כתבו לפחות את השם שלכם'); return; } if (OB.step < 3) { OB.step++; drawOnb(); } else finishOnboarding(false); },
+  obbackup: () => openBackup(),
+  obback: () => { obCollect(); OB.step--; drawOnb(); }, obdemo: () => { obCollect(); finishOnboarding(true); }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const f = ACT[el.dataset.act]; if (f) { e.preventDefault(); f(el, e); }
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.id === 'q') { T.q = el.value; $('#txlist').innerHTML = txListHTML(); return; }
+  if (el.dataset.in && D) {
+    const k = el.dataset.in;
+    if (k === 'note') D.note = el.value;
+    else if (k === 'talked') D.talked = el.checked;
+  }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.in && D) { const k = el.dataset.in; if (k === 'date') { D.date = el.value || today(); } if (k === 'inst') { D.inst = +el.value; } D.more = true; drawAdd(); }
+  if (el.dataset.imp && IMP) { const r = IMP[+el.dataset.i]; if (el.dataset.imp === 'on') r.on = el.checked; else r.cat = el.value; }
+});
+
+/* ================= boot ================= */
+async function boot() {
+  S = load();
+  let rec = null; try { rec = await recoverFromMirror(); } catch (e) { }
+  let emb = null; try { emb = absorbEmbedded(); } catch (e) { }
+  try { await refreshSnaps(); } catch (e) { }
+  $('#tabs').innerHTML = `<div class="tbar">
+   <button class="tab" data-tab="home" data-act="tabhome">${I.home}בית</button>
+   <button class="tab" data-tab="leaks" data-act="tableaks">${I.leak}חורים</button>
+   <button id="fab" data-act="add" aria-label="הוספת הוצאה"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+   <button class="tab" data-tab="tx" data-act="tabtx">${I.list}תנועות</button>
+   <button class="tab" data-tab="more" data-act="tabmore">${I.more}עוד</button></div>`;
+  ACT.tabhome = () => go('home'); ACT.tableaks = () => go('leaks'); ACT.tabtx = () => go('tx'); ACT.tabmore = () => go('more');
+  render();
+  if (S.pin) showLock();
+  else if (!S.onboarded) startOnboarding();
+  else if (S.settings.me == null) setTimeout(() => openWhoAmI(true), 300);
+  else setTimeout(maybeAutoReport, 400);
+  if (rec && rec.restored) setTimeout(() => toast(rec.n > 0 ? `הזיכרון שוחזר מהמאגר הפנימי (${rec.n} רישומים)` : 'הזיכרון שוחזר מהמאגר הפנימי'), 600);
+  else if (emb && emb.n > 0) setTimeout(() => toast(`נטענו ${emb.n} רישומים מהקובץ`), 600);
+  if (!ART) detectIncognito();
+  if (!S.pin) setTimeout(maybeAutoBackup, rec && rec.restored ? 3500 : 0);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
+  if (!ART && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+document.addEventListener('DOMContentLoaded', boot);
+
+</script>
+</body>
+</html>
