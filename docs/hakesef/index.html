@@ -291,7 +291,7 @@ function cycleLabel(key) { return `${fmtShort(key)} – ${fmtShort(addD(cycleEnd
 const CATS = [
   { id: 'transport', n: 'דלק', e: '⛽', k: 'v' }, { id: 'grocery', n: 'מכולת ליד הבית', e: '🏪', k: 'v' },
   { id: 'produce', n: 'פירות וירקות', e: '🍎', k: 'v' }, { id: 'bakery', n: 'מאפייה', e: '🥖', k: 'v' },
-  { id: 'pharmacy', n: 'בית מרקחת', e: '💊', k: 'v' }, { id: 'grocery2', n: 'מכולת אחרת', e: '🧺', k: 'v' },
+  { id: 'pharmacy', n: 'בית מרקחת', e: '💊', k: 'v' }, { id: 'care', n: 'טיפוח', e: '💅', k: 'v' }, { id: 'grocery2', n: 'מכולת אחרת', e: '🧺', k: 'v' },
   { id: 'shop2', n: 'חנות אחרת', e: '🏬', k: 'v' }, { id: 'food', n: 'סופר גדול', e: '🛒', k: 'v' },
   { id: 'eatout', n: 'אוכל בחוץ', e: '☕', k: 'v' }, { id: 'delivery', n: 'משלוחים', e: '🛵', k: 'v' },
   { id: 'kids', n: 'ילדים', e: '🧸', k: 'v' }, { id: 'health', n: 'רופאים ובריאות', e: '🩺', k: 'v' },
@@ -1484,7 +1484,8 @@ function drawAdd() {
   <div class="lbl">${isCash ? 'מאיזה חשבון' : 'מי שילם'}</div>
   <div class="seg"><button aria-pressed="${D.who === 0}" data-act="who" data-v="0">${esc(names()[0])}</button><button aria-pressed="${D.who === 1}" data-act="who" data-v="1">${esc(names()[1])}</button><button aria-pressed="${D.who === 2}" data-act="who" data-v="2">שנינו</button></div>
   ${isCash ? `<div class="lbl">למי נמסר המזומן</div>
-  <div class="seg"><button aria-pressed="${D.holder === 0}" data-act="holder" data-v="0">${esc(names()[0])}</button><button aria-pressed="${D.holder === 1}" data-act="holder" data-v="1">${esc(names()[1])}</button><button aria-pressed="${D.holder === 2}" data-act="holder" data-v="2">משותף</button></div>` : `<div class="lbl">איך שילמו</div>
+  <div class="seg"><button aria-pressed="${D.holder === 0}" data-act="holder" data-v="0">${esc(names()[0])}</button><button aria-pressed="${D.holder === 1}" data-act="holder" data-v="1">${esc(names()[1])}</button><button aria-pressed="${D.holder === 2}" data-act="holder" data-v="2">משותף</button></div>
+  ${!D.id && (D.holder === 0 || D.holder === 1) ? `<div class="field mt"><label for="dsplit">מתוך זה נמסר ל${esc(names()[1 - D.holder])} (לא חובה, למשל דמי השבוע)</label><input id="dsplit" type="number" inputmode="decimal" min="0" value="${esc(D.split || '')}" placeholder="0" data-in="split"></div>` : ''}` : `<div class="lbl">איך שילמו</div>
   <div class="seg">${Object.entries(METHODS).map(([k, l]) => `<button aria-pressed="${D.method === k}" data-act="method" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="lbl">למה (לא חובה)</div>
   <div class="chips">${WHYS.map(w => `<button class="chip sm" aria-pressed="${D.why === w}" data-act="why1" data-v="${esc(w)}">${esc(w)}</button>`).join('')}</div>`}
@@ -1633,7 +1634,7 @@ async function shareBackup() {
   downloadText(name, txt); toast('הקובץ ירד למכשיר. שלחו אותו בטלגרם ל"הודעות שמורות".'); render();
 }
 function loadBackup() {
-  try { const added = importMerge($('#bktxt').value); closeSheet(); render(); if ($('#onb') && S.onboarded) { $('#onb').remove(); OB = null; document.body.style.overflow = ''; go('home'); }
+  try { const added = importMerge($('#bktxt').value); closeSheet(); render(); if ($('#onb') && S.onboarded) { $('#onb').remove(); OB = null; document.body.style.overflow = ''; go('home'); if (S.settings.me == null) setTimeout(() => openWhoAmI(true), 300); }
     toast(added > 0 ? (added === 1 ? 'נטען רישום חדש אחד' : `נטענו ${added} רישומים חדשים`) : 'הנתונים נטענו, הכל מעודכן'); }
   catch (e) { toast(e.message); }
 }
@@ -1718,7 +1719,11 @@ const ACT = {
   who: el => { D.who = +el.dataset.v; if (D.cat === 'cash' && D.holder == null) D.holder = D.who; drawAdd(); }, holder: el => { D.holder = +el.dataset.v; drawAdd(); }, why1: el => { D.why = D.why === el.dataset.v ? '' : el.dataset.v; drawAdd(); }, method: el => { D.method = el.dataset.v; drawAdd(); },
   yday: () => { D.date = addD(today(), -1); D.more = true; drawAdd(); },
   savetx: () => {
-    const wasNew = !D.id; const r = saveTx(); if (!r) return;
+    const wasNew = !D.id;
+    const split = D.cat === 'cash' && !D.id && (D.holder === 0 || D.holder === 1) ? Math.round((parseFloat(D.split) || 0) * 100) / 100 : 0;
+    const total = parseFloat(D.amt) || 0;
+    if (split > 0 && split < total) { const other = 1 - D.holder, base = { ...D, id: null }; saveTx({ ...base, amt: String(Math.round((total - split) * 100) / 100) }); const r2 = saveTx({ ...base, amt: String(split), holder: other }); closeSheet(); render(); toast(`נרשמו שתי משיכות: ${moneyT(total - split)} ל${whoName(D.holder)} ו־${moneyT(split)} ל${whoName(other)}`); return; }
+    const r = saveTx(); if (!r) return;
     closeSheet(); render();
     const big = r.t.amt >= S.settings.approve && !r.t.talked;
     toast(`נרשם ${moneyT(r.t.amt)}${big && wasNew ? ' · הוצאה גדולה, כדאי לדבר עליה' : ''}`, wasNew ? () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); } : null);
@@ -1763,6 +1768,7 @@ document.addEventListener('input', e => {
   if (el.dataset.in && D) {
     const k = el.dataset.in;
     if (k === 'note') D.note = el.value;
+    else if (k === 'split') D.split = el.value;
     else if (k === 'talked') D.talked = el.checked;
   }
 });
