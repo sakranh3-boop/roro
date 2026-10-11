@@ -842,6 +842,23 @@ function openAddCash() {
   const d = newDraft(); d.cat = 'cash'; d.method = 'bank'; d.who = S.lastCashWho ?? d.who; d.holder = S.lastCashHolder ?? me();
   D = d; openSheet('<div id="addbody"></div>', { full: true }); drawAdd();
 }
+
+/* ---- possible duplicates after a sync (same day, amount, category, who, different ids) ---- */
+function findDupes() {
+  const seen = new Map(), out = [];
+  for (const t of txLive().slice().sort((a, b) => (a.at || a.updatedAt || '').localeCompare(b.at || b.updatedAt || ''))) {
+    const k = [t.date, Math.round(t.amt * 100), t.cat, t.who, t.cat === 'cash' ? (t.holder == null ? t.who : t.holder) : ''].join('|');
+    if (seen.has(k)) out.push([seen.get(k), t]); else seen.set(k, t);
+  }
+  return out;
+}
+function openDupes() {
+  const d = findDupes();
+  if (!d.length) { toast('לא נמצאו כפילויות'); return; }
+  openSheet(`<h2>אולי נרשם פעמיים<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">אותו סכום, אותה קטגוריה, אותו יום ואותו אדם, משני רישומים. אם זו באמת אותה פעולה (למשל שניכם רשמתם את אותה משיכה), מוחקים אחת. אם היו באמת שתי קניות זהות, משאירים.</p>
+  <div class="list mt">${d.map(([a, b]) => `<div class="item" style="flex-wrap:wrap"><span class="ico">${catById(a.cat).e}</span><span class="t"><b>${esc(catById(a.cat).n)} · ${money(a.amt)}</b><small>${esc(fmtShort(a.date))} · ${esc(whoName(a.who))}${txTime(a) ? ' · ' + txTime(a) : ''}${txTime(b) ? ' / ' + txTime(b) : ''}</small></span><button class="btn ghost sm" data-act="deldupe" data-id="${esc(b.id)}" style="flex:none">מחיקת הכפול</button></div>`).join('')}</div>`);
+}
 /* ================= demo data (clearly marked, removable) ================= */
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function makeDemo() {
@@ -1108,6 +1125,7 @@ function viewMore() {
   ${item('import', '📥', 'ייבוא מדף אשראי', 'הדביקו שורות מהכרטיס ואשרו בלחיצה')}
   ${item('backup', '💾', 'גיבוי ושיתוף בין הטלפונים', S.lastBackup ? 'גיבוי אחרון: ' + new Date(S.lastBackup).toLocaleDateString('he-IL') : 'עוד לא גיביתם')}
   ${item('restore', '🛡️', 'הזיכרון הבטוח', memoryStatus())}
+  ${item('dupes', '🔍', 'בדיקת כפילויות', 'אחרי טעינת גיבוי מהטלפון השני')}
   ${item('settings', '⚙️', 'הגדרות', 'שמות, יום משכורת, ספי התראה, גיבוי אוטומטי')}
   ${item('pinsheet', '🔒', 'קוד נעילה', S.pin ? 'פעיל' : 'לא מוגדר')}
   ${item('guide', '📲', 'אייקון במסך הבית', isStandalone() ? 'מותקן' : 'אנדרואיד ואייפון, 10 שניות')}
@@ -1635,7 +1653,9 @@ async function shareBackup() {
 }
 function loadBackup() {
   try { const added = importMerge($('#bktxt').value); closeSheet(); render(); if ($('#onb') && S.onboarded) { $('#onb').remove(); OB = null; document.body.style.overflow = ''; go('home'); if (S.settings.me == null) setTimeout(() => openWhoAmI(true), 300); }
-    toast(added > 0 ? (added === 1 ? 'נטען רישום חדש אחד' : `נטענו ${added} רישומים חדשים`) : 'הנתונים נטענו, הכל מעודכן'); }
+    const dup = findDupes().length;
+    toast(added > 0 ? (added === 1 ? 'נטען רישום חדש אחד' : `נטענו ${added} רישומים חדשים`) + (dup ? ` · ${dup} אולי כפולים` : '') : 'הנתונים נטענו, הכל מעודכן', dup ? () => openDupes() : null);
+    if (dup) setTimeout(() => { const u = $('#undo'); if (u) u.textContent = 'בדיקה'; }, 0); }
   catch (e) { toast(e.message); }
 }
 
@@ -1732,6 +1752,7 @@ const ACT = {
   quick: el => { const q = quickCombos()[+el.dataset.i]; if (!q) return; const r = saveTx({ amt: String(q.amt), cat: q.cat, who: q.who, method: q.method || 'card', inst: 1, date: today(), note: '' }); closeSheet(); render(); toast(`נשמר ${moneyT(q.amt)} ${catById(q.cat).n}`, () => { const i = S.tx.findIndex(x => x.id === r.t.id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); render(); }); },
   edittx: el => { const t = S.tx.find(x => x.id === el.dataset.id); if (t) openAdd(t); },
   goleaks: () => go('leaks'), gotx: () => go('tx'), gobudget: () => go('more', 'budget'), gocash: () => go('more', 'cash'), addcash: () => openAddCash(), gocouple: () => go('more', 'couple'), gomore: () => go('more'),
+  dupes: () => openDupes(), deldupe: el => { const i = S.tx.findIndex(x => x.id === el.dataset.id); if (i >= 0) { S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; save(); } if (findDupes().length) openDupes(); else { closeSheet(); render(); toast('נמחק, אין עוד כפילויות'); } },
   guide: () => openGuide(), installnow: () => installNow(), ioshint: () => showIosHint(), setme: el => { S.settings.me = +el.dataset.v; S.lastUsed.who = +el.dataset.v; S.settings.updatedAt = nowISO(); save(); closeSheet(); render(); toast(`הטלפון הזה של ${myName()}`); }, backup: () => openBackup(), restore: () => openRestore(), restoresnap: el => restoreSnap(el.dataset.key),
   fullcopy: async () => { const h = fullCopyHTML(); if (!h) { toast('לא זמין בדפדפן הזה'); return; } const r = await shareOrDownload(`hakesef-shelanu-${today()}.html`, h, 'text/html'); if (r === 'downloaded') toast('העותק המלא ירד למכשיר. שלחו אותו בטלגרם.'); else if (r === 'shared') toast('העותק המלא נשלח'); render(); }, settings: () => openSettings(), import: () => openImport(),
   demo: () => { makeDemo(); save(); render(); toast('נטענו נתוני דמו. אפשר למחוק ב"עוד".'); },
