@@ -1372,9 +1372,19 @@ function voiceFlag(it) {
   if (it.amt >= 3000) return 'סכום גדול מאוד, בדקו שזה נכון';
   return '';
 }
+function dedupeToks(toks) {
+  toks = toks.filter((t, i) => i === 0 || t !== toks[i - 1]); /* speech engines sometimes repeat a word */
+  for (let n = 4; n >= 2; n--) for (let i = 0; i + 2 * n <= toks.length;) { /* ...or a whole phrase (never if it holds a number: "קפה 20 קפה 20" can be real) */
+    const a = toks.slice(i, i + n), b = toks.slice(i + n, i + 2 * n);
+    if (a.join(' ') === b.join(' ') && !a.some(w => /\d/.test(w) || isNumWord(w))) toks.splice(i + n, n); else i++;
+  }
+  return toks;
+}
+const speechClean = t => dedupeToks(String(t || '').split(/\s+/).filter(Boolean)).join(' ');
 function parseSpeech(raw) {
   let s = String(raw || '').replace(/[‎‏]/g, '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d)\.(\d{3})(?!\d)/g, '$1$2').replace(/(\d)\.(\d)/g, '$1٫$2').replace(/₪/g, ' ').replace(/[.,;:!?،"()]/g, ' ').replace(/(\d)([א-ת])/g, '$1 $2').replace(/([א-ת])(\d)/g, '$1 $2');
   let toks = s.split(/\s+/).filter(Boolean).map(t => t.replace('٫', '.'));
+  toks = dedupeToks(toks);
   let dayOff = 0;
   toks = toks.filter(t => { if (t === 'אתמול') { dayOff = -1; return false; } if (t === 'שלשום') { dayOff = -2; return false; } if (t === 'היום') return false; return true; });
   const seq = [];
@@ -1444,6 +1454,16 @@ function voiceStop(silent) {
   try { VO.rec && (silent ? VO.rec.abort() : VO.rec.stop()); } catch (e) { }
   if (silent) VO.rec = null;
 }
+function mergeSeg(segs, t) {
+  t = String(t || '').replace(/\s+/g, ' ').trim(); if (!t) return;
+  const last = segs[segs.length - 1];
+  if (last === undefined) { segs.push(t); return; }
+  if (t === last || last.startsWith(t) || last.endsWith(t) || last.includes(t)) return; /* a repeat of what we already have */
+  if (t.startsWith(last) || t.includes(last)) { segs[segs.length - 1] = t; return; } /* cumulative result: longer version replaces */
+  const lw = last.split(' '), tw = t.split(' '); /* partial overlap: drop the repeated head */
+  for (let k = Math.min(lw.length, tw.length) - 1; k >= 1; k--) if (lw.slice(-k).join(' ') === tw.slice(0, k).join(' ')) { segs.push(tw.slice(k).join(' ')); return; }
+  segs.push(t);
+}
 function liveHTML() {
   if (!VO) return ''; const txt = ((VO.base || '') + ' ' + (VO.interim || '')).trim(); if (!txt) return '';
   const r = parseSpeech(txt); if (!r.items.length) return '';
@@ -1454,22 +1474,25 @@ function voiceStart() {
   try {
     const r = new SpeechRec(); VO.rec = r; VO.err = ''; VO.stopping = false; VO.interim = '';
     r.lang = 'he-IL'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 5;
+    VO.pre = VO.base || '';
     r.onresult = e => {
-      let it = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      /* rebuild this session's text from ALL results every time (idempotent): Android Chrome re-sends and extends earlier results */
+      const segs = [];
+      for (let i = 0; i < e.results.length; i++) {
         const res = e.results[i];
-        if (res.isFinal) { const b = bestAlt(res); VO.base = (VO.base ? VO.base + ' ' : '') + b.t.trim(); if (b.c && b.c < .55) VO.low = true; }
-        else it += (res[0] ? res[0].transcript : '');
+        if (res.isFinal) { const b = bestAlt(res); mergeSeg(segs, b.t); if (b.c && b.c < .55) VO.low = true; }
+        else mergeSeg(segs, res[0] ? res[0].transcript : '');
       }
-      VO.interim = it; const ta = $('#vtxt'); if (ta) ta.value = (VO.base || '') + (it ? ' ' + it : '');
+      VO.base = speechClean((VO.pre ? VO.pre + ' ' : '') + segs.join(' ')); VO.interim = '';
+      const ta = $('#vtxt'); if (ta) ta.value = VO.base;
       const lv = $('#vlive'); if (lv) lv.innerHTML = liveHTML();
       clearTimeout(VO.silT);
-      if (parseSpeech(((VO.base || '') + ' ' + it)).items.length) VO.silT = setTimeout(() => { if (VO && VO.listening) { voiceStop(false); } }, 4500);
+      if (parseSpeech(VO.base).items.length) VO.silT = setTimeout(() => { if (VO && VO.listening) { voiceStop(false); } }, 4500);
     };
     r.onerror = e => { if (e.error === 'no-speech' || e.error === 'aborted') return; VO.err = e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'אין הרשאה למיקרופון. אשרו בהגדרות הדפדפן, או הקלידו בתיבה.' : e.error === 'network' ? 'אין חיבור לאינטרנט להבנת הדיבור. הקלידו בתיבה או נסו שוב.' : 'ההקלטה נעצרה (' + e.error + '). אפשר לנסות שוב או להקליד.'; VO.stopping = true; VO.listening = false; };
     r.onend = () => {
       if (!VO || VO.rec !== r) return;
-      if (VO.listening && !VO.stopping) { try { r.start(); } catch (e) { VO.listening = false; } return; }
+      if (VO.listening && !VO.stopping) { VO.pre = VO.base || ''; try { r.start(); } catch (e) { VO.listening = false; } return; }
       VO.listening = false; clearTimeout(VO.silT); if (VO.interim) { VO.base = (VO.base ? VO.base + ' ' : '') + VO.interim; VO.interim = ''; }
       if ((VO.base || '').trim() && !VO.err) voiceParse(); else drawVoice();
     };
@@ -1489,7 +1512,7 @@ const voiceTotal = () => sum((VO.items || []).filter(x => x.type === 'buy').map(
 function itemRow(it, i) {
   const n = names(), fl = voiceFlag(it);
   const head = (inner) => `<div class="card" style="padding:10px;margin-top:8px;${it.known && !fl ? '' : 'border-inline-start:5px solid var(--coin)'}">${inner}</div>`;
-  const amt = `<input type="number" inputmode="decimal" min="0" value="${esc(it.amt)}" data-vi="amt" data-i="${i}" style="width:92px;flex:none" aria-label="סכום">`, del = `<button class="btn ghost sm" data-act="voicedel" data-i="${i}" style="flex:none" aria-label="הסרה">×</button>`;
+  const amt = `<input type="number" inputmode="decimal" min="0" value="${esc(it.amt)}" data-vi="amt" data-i="${i}" style="width:92px;flex:none" aria-label="סכום">`, del = `<button class="btn danger sm" data-act="voicedel" data-i="${i}" style="flex:none;min-width:44px" aria-label="מחיקת הפריט">🗑</button>`;
   if (it.type === 'wd') return head(`<div class="row2"><b style="flex:1">💵 משיכה מהכספומט <small class="mini">מהחשבון של ${esc(whoName(it.who != null ? it.who : VO.who))}</small></b>${amt}${del}</div>`);
   if (it.type === 'hand') return head(`<div class="row2"><b style="flex:1">🤝 מסירה: ${esc(whoName(it.from))} ← ${esc(whoName(it.to))}</b>${amt}${del}</div>`);
   return head(`<div class="row2"><select data-vi="cat" data-i="${i}" style="flex:1;min-width:0" aria-label="קטגוריה">${CASH_CATS.map(c => `<option value="${c.id}" ${c.id === it.cat ? 'selected' : ''}>${c.e} ${esc(c.n)}</option>`).join('')}</select>${amt}${del}</div>
@@ -1505,11 +1528,12 @@ function drawVoice() {
   ${SpeechRec ? `<button class="btn ${VO.listening ? 'danger' : 'coin'} block" data-act="voicemic" style="min-height:64px;font-size:18px">${VO.listening ? '⏹ סיימתי לדבר' : '🎤 התחלת הקלטה'}</button>${VO.listening ? '<p class="mini" style="text-align:center;margin-top:6px">🔴 מקשיב... נעצור לבד אחרי כמה שניות שקט</p>' : ''}` : '<div class="banner" style="margin:0 0 8px"><span>⌨️</span><span>הדפדפן הזה לא מקליט מתוך האפליקציה. לחצו בתוך התיבה למטה ואז על המיקרופון של המקלדת, והכתיבו.</span></div>'}
   <div id="vlive">${VO.listening ? liveHTML() : ''}</div>
   ${VO.err ? `<p class="mini mt" style="color:var(--bad)">${esc(VO.err)}</p>` : ''}${VO.low && items ? '<p class="mini mt" style="color:var(--warn)">⚠️ הזיהוי לא היה בטוח בחלק מהדברים. כדאי לבדוק היטב את הסכומים.</p>' : ''}
-  <div class="field mt"><label for="vtxt">מה שנשמע (אפשר לתקן)</label><textarea id="vtxt" rows="3" data-vi="text" placeholder="מכולת 600, דלק 300...">${esc(VO.base + (VO.interim ? ' ' + VO.interim : ''))}</textarea></div>
+  <div class="field mt"><label for="vtxt" style="display:flex;justify-content:space-between;align-items:center">מה שנשמע (אפשר לתקן)<button class="btn ghost sm" data-act="voiceclear" style="flex:none;min-height:34px">🧹 ניקוי והתחלה מחדש</button></label><textarea id="vtxt" rows="3" data-vi="text" placeholder="מכולת 600, דלק 300...">${esc(VO.base + (VO.interim ? ' ' + VO.interim : ''))}</textarea></div>
   <div class="lbl">מי הוציא (ברירת מחדל)</div>
   <div class="seg"><button aria-pressed="${VO.who === 0}" data-act="voicewho" data-v="0">${esc(n[0])}</button><button aria-pressed="${VO.who === 1}" data-act="voicewho" data-v="1">${esc(n[1])}</button><button aria-pressed="${VO.who === 2}" data-act="voicewho" data-v="2">שנינו</button></div>
   ${VO.dayOff ? `<p class="mini mt">התאריך: ${esc(fmtDay(date))}</p>` : ''}
   ${items ? `<div class="row" style="margin:16px 0 2px;display:flex;justify-content:space-between;align-items:center"><h2 style="font-size:16px;margin:0">${items.length ? `כך הבנתי (${items.length}), בדקו ותקנו` : 'לא נמצא כלום'}</h2>${items.length && window.speechSynthesis ? '<button class="btn ghost sm" data-act="voicespeak" style="flex:none">🔊 הקראה</button>' : ''}</div>${items.map(itemRow).join('')}` : ''}
+  ${VO.trash && VO.trash.length ? '<p class="mt"><button class="btn ghost sm" data-act="voiceundo">↩ החזרת הפריט שנמחק</button></p>' : ''}
   <div class="saveBar"><div class="row2"><button class="btn ghost" data-act="voiceparse" style="flex:none;padding:0 14px">${items ? 'פענוח מחדש' : 'פענוח'}</button><button class="btn coin block" data-act="voicesave" ${any ? '' : 'disabled'}>${any ? `שמירה · <span id="vtotal">${moneyT(voiceTotal())}</span>` : 'הכל ייכנס אחרי הפענוח'}</button></div></div>`;
   b.parentElement.scrollTop = sc;
 }
@@ -1536,12 +1560,14 @@ const ACT_VOICE = {
   voicemic: () => { if (!VO) return; if (VO.listening) { voiceStop(false); drawVoice(); } else { VO.items = null; VO.err = ''; VO.low = false; VO.base = ''; voiceStart(); drawVoice(); } },
   voiceparse: () => voiceParse(),
   voicewho: el => { VO.who = +el.dataset.v; const t = $('#vtxt'); if (t && !VO.listening) VO.base = t.value; drawVoice(); },
-  voicedel: el => { VO.items.splice(+el.dataset.i, 1); drawVoice(); },
+  voicedel: el => { const [x] = VO.items.splice(+el.dataset.i, 1); if (x) { (VO.trash = VO.trash || []).push(x); } drawVoice(); },
+  voiceundo: () => { const x = (VO.trash || []).pop(); if (x) { VO.items = VO.items || []; VO.items.push(x); drawVoice(); } },
+  voiceclear: () => { voiceStop(true); VO.base = ''; VO.pre = ''; VO.interim = ''; VO.items = null; VO.err = ''; VO.low = false; VO.trash = []; VO.dayOff = 0; drawVoice(); },
   voicesave: () => voiceSave(), voicespeak: () => voiceSpeak()
 };
 document.addEventListener('input', e => {
   const el = e.target, k = el.dataset && el.dataset.vi; if (!k || !VO) return;
-  if (k === 'text') { VO.base = el.value; VO.interim = ''; return; }
+  if (k === 'text') { VO.base = el.value; VO.pre = el.value; VO.interim = ''; return; }
   const it = VO.items && VO.items[+el.dataset.i]; if (!it) return;
   if (k === 'amt') { it.amt = parseFloat(el.value) || 0; const t = $('#vtotal'); if (t) t.textContent = moneyT(voiceTotal()); } else if (k === 'note') it.note = el.value;
 });
