@@ -803,7 +803,7 @@ function viewHome() {
   <div class="seg modeSeg"><button aria-pressed="${MODE === 'week'}" data-act="mode" data-v="week">השבוע</button><button aria-pressed="${MODE === 'month'}" data-act="mode" data-v="month">החודש</button></div></header>
   <div class="liveCard">${hero}</div>
   ${banners()}
-  <div class="sec"><h2>על מה הוצא מזומן</h2>${quickTiles()}<p class="mini mt" style="text-align:center">לא מצאתם? לחצו על + למטה לכל הקטגוריות</p></div>
+  <div class="sec"><button class="btn coin block" data-act="voice" style="min-height:58px;font-size:17px;margin-bottom:12px">🎤 רישום קולי: אמרו הכול ברצף</button><h2>על מה הוצא מזומן</h2>${quickTiles()}<p class="mini mt" style="text-align:center">לא מצאתם? לחצו על + למטה לכל הקטגוריות</p></div>
   ${P.total ? `<div class="sec"><h2>לאן הלך המזומן ${MODE === 'week' ? 'השבוע' : 'החודש'}</h2><div class="card">${catStack(P)}</div></div>` : ''}
   ${topCatCard(P, MODE)}
   ${cashCardP(K, KW)}
@@ -1288,6 +1288,172 @@ function openGuide() {
 }
 
 
+/* ================= voice entry: say "category amount, category amount..." ================= */
+const HN_UNITS = { אפס: 0, אחד: 1, אחת: 1, שתיים: 2, שניים: 2, שתים: 2, שתי: 2, שני: 2, שלוש: 3, שלושה: 3, ארבע: 4, ארבעה: 4, חמש: 5, חמישה: 5, שש: 6, שישה: 6, שבע: 7, שבעה: 7, שמונה: 8, תשע: 9, תשעה: 9, עשר: 10, עשרה: 10, עשרים: 20, שלושים: 30, ארבעים: 40, חמישים: 50, שישים: 60, שבעים: 70, שמונים: 80, תשעים: 90,
+  שלושת: 3, ארבעת: 4, חמשת: 5, ששת: 6, שבעת: 7, שמונת: 8, תשעת: 9, עשרת: 10 };
+const HN_OTHER = new Set(['מאה', 'מאתיים', 'מאות', 'אלף', 'אלפיים', 'אלפים']);
+const isNumWord = w => Object.prototype.hasOwnProperty.call(HN_UNITS, w) || HN_OTHER.has(w);
+function wordsToNum(ws) {
+  let total = 0, cur = 0;
+  for (const w of ws) {
+    if (Object.prototype.hasOwnProperty.call(HN_UNITS, w)) cur += HN_UNITS[w];
+    else if (w === 'מאה') cur = cur > 0 && cur < 10 ? cur * 100 : cur + 100;
+    else if (w === 'מאתיים') cur += 200;
+    else if (w === 'מאות') cur = cur > 0 && cur < 10 ? cur * 100 : (cur || 1) * 100;
+    else if (w === 'אלף') { total += (cur || 1) * 1000; cur = 0; }
+    else if (w === 'אלפיים') { total += 2000 + cur * 0; cur = 0; }
+    else if (w === 'אלפים') { total += (cur || 2) * 1000; cur = 0; }
+  }
+  return total + cur;
+}
+const VOICE_CATS = [
+  ['pharmacy', ['סופר פארם', 'סופרפארם', 'בית מרקחת', 'מרקחת', 'תרופות', 'תרופה', 'ויטמינים', 'פארם']],
+  ['grocery2', ['מכולת אחרת']],
+  ['grocery', ['מכולת שכונה', 'מכולת', 'שכונה', 'מינימרקט', 'קיוסק']],
+  ['produce', ['פירות וירקות', 'פיורת', 'פירות', 'ירקות', 'ירקן', 'פרי', 'ירק', 'שוק', 'אבטיח']],
+  ['bakery', ['מאפייה', 'מאפיה', 'מאפים', 'מאפה', 'לחם', 'פיתות', 'חלות', 'חלה', 'בורקס']],
+  ['delivery', ['וולט', 'wolt', 'תן ביס', 'משלוחים', 'משלוח']],
+  ['eatout', ['אוכל מוכן', 'אוכל בחוץ', 'מסעדה', 'בית קפה', 'קפה', 'פיצה', 'פלאפל', 'שווארמה', 'שוארמה', 'המבורגר', 'גלידה', 'חומוס', 'סושי', 'ארוחה', 'ארוחת', 'אוכל']],
+  ['food', ['סופר גדול', 'שופרסל', 'רמי לוי', 'יוחננוף', 'ויקטורי', 'אושר עד', 'יינות ביתן', 'קניות גדולות', 'קניות', 'סופר', 'מגה']],
+  ['transport', ['תחנת דלק', 'תדלוק', 'בנזין', 'סולר', 'דלק', 'סונול', 'דור אלון', 'חניה', 'מונית', 'אוטובוס', 'רכבת', 'כביש']],
+  ['care', ['טיפוח', 'מספרה', 'תספורת', 'קוסמטיקה', 'קוסמטיקאית', 'ציפורניים', 'מניקור', 'פדיקור', 'איפור', 'שיער', 'ספא', 'בושם', 'לק']],
+  ['health', ['רופא שיניים', 'רופאים', 'רופאה', 'רופא', 'מרפאה', 'קופת חולים', 'שיניים', 'אופטיקה', 'משקפיים', 'בדיקה']],
+  ['edu', ['צהרון', 'חוגים', 'חוג', 'שיעור פרטי', 'שיעורים', 'ציוד לימודי', 'ספרי לימוד', 'ספרים', 'בית ספר']],
+  ['kids', ['צעצועים', 'צעצוע', 'חיתולים', 'ילדים', 'ילדה', 'ילד', 'בייבי', 'משחק']],
+  ['clothes', ['בגדים', 'ביגוד', 'חולצה', 'מכנסיים', 'נעליים', 'נעלים', 'נעל', 'שמלה', 'קסטרו', 'זארה', 'גרביים', 'תחתונים', 'מעיל', 'פיג׳מה', 'פיג\'מה', 'בגד']],
+  ['gifts', ['מתנות', 'מתנה', 'יום הולדת', 'חתונה', 'פרחים']],
+  ['fun', ['בילויים', 'בילוי', 'קולנוע', 'סרט', 'פארק', 'בריכה', 'משחקייה', 'אטרקציה', 'הצגה', 'טיול']],
+  ['bills', ['חשבונות', 'חשבון', 'חשמל', 'ארנונה', 'אינטרנט', 'סלולר', 'טלפון']],
+  ['car', ['מוסך', 'טסט', 'צמיגים', 'שטיפה', 'רכב', 'תיקון']],
+  ['home', ['כלי בית', 'ציוד לבית', 'מוצרי ניקיון', 'ניקיון', 'איקאה', 'ריהוט', 'מנורה', 'בית וציוד']],
+  ['shop2', ['חנות אחרת', 'חנות']]
+];
+const VOICE_KW = new Set(VOICE_CATS.flatMap(c => c[1]));
+const VOICE_STOP = new Set(['שקל', 'שקלים', 'שח', 'ש״ח', 'ש"ח', 'ועוד', 'עוד', 'אחר', 'כך', 'אחרי', 'זה', 'גם', 'קניתי', 'שילמתי', 'הוצאתי', 'ובנוסף', 'ואז', 'אז', 'וגם', 'פסיק', 'נקודה', 'ו']);
+function voiceNorm(p) { return String(p).replace(/[֑-ׇ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+function voiceCat(phrase) {
+  const p = voiceNorm(phrase);
+  if (S && S.rules && okStr(S.rules[p])) return { cat: S.rules[p], known: true };
+  let best = null, bl = 0;
+  for (const [cat, kws] of VOICE_CATS) for (const k of kws) if (k.length > bl && p.includes(k.toLowerCase())) { best = cat; bl = k.length; }
+  return best ? { cat: best, known: true } : { cat: 'other', known: false };
+}
+function parseSpeech(raw) {
+  let s = String(raw || '').replace(/[‎‏]/g, '').replace(/(\d),(\d{3})(?!\d)/g, '$1$2').replace(/(\d)\.(\d)/g, '$1٫$2').replace(/₪/g, ' ').replace(/[.,;:!?،"()]/g, ' ').replace(/(\d)([א-ת])/g, '$1 $2').replace(/([א-ת])(\d)/g, '$1 $2');
+  let toks = s.split(/\s+/).filter(Boolean).map(t => t.replace('٫', '.'));
+  let dayOff = 0;
+  toks = toks.filter(t => { if (t === 'אתמול') { dayOff = -1; return false; } if (t === 'שלשום') { dayOff = -2; return false; } if (t === 'היום') return false; return true; });
+  const seq = [];
+  for (let i = 0; i < toks.length;) {
+    const t = toks[i];
+    if (/^\d+(\.\d+)?$/.test(t)) { seq.push({ n: parseFloat(t) }); i++; continue; }
+    const words = []; let j = i;
+    while (j < toks.length) {
+      const w = toks[j];
+      if (isNumWord(w)) { words.push(w); j++; continue; }
+      if (w.length > 2 && w[0] === 'ו' && isNumWord(w.slice(1))) { words.push(w.slice(1)); j++; continue; }
+      if (w === 'ו' && words.length && j + 1 < toks.length && (isNumWord(toks[j + 1]) || (toks[j + 1][0] === 'ו' && isNumWord(toks[j + 1].slice(1))))) { j++; continue; }
+      break;
+    }
+    if (words.length) { seq.push({ n: wordsToNum(words) }); i = j; continue; }
+    seq.push({ w: t }); i++;
+  }
+  const clean = ws => { const a = ws.filter(w => !VOICE_STOP.has(w)); if (a.length && a[0].length > 2 && a[0][0] === 'ו' && !VOICE_KW.has(a[0]) && !isNumWord(a[0].slice(1))) a[0] = a[0].slice(1); return a.join(' ').trim(); };
+  const items = [], amountFirst = seq.length && seq[0].n != null;
+  let buf = [], pend = null;
+  const push = (amt, phrase) => { if (!(amt > 0)) return; const c = voiceCat(phrase); items.push({ amt, phrase, note: phrase, cat: c.cat, known: c.known }); };
+  if (amountFirst) {
+    for (const x of seq) { if (x.n != null) { if (pend != null) push(pend, clean(buf)); pend = x.n; buf = []; } else buf.push(x.w); }
+    if (pend != null) push(pend, clean(buf));
+  } else {
+    for (const x of seq) { if (x.n != null) { push(x.n, clean(buf)); buf = []; } else buf.push(x.w); }
+  }
+  return { items, dayOff };
+}
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let VO = null;
+function voiceStop(silent) {
+  if (!VO) return; VO.stopping = true; VO.listening = false;
+  try { VO.rec && (silent ? VO.rec.abort() : VO.rec.stop()); } catch (e) { }
+  if (silent) VO.rec = null;
+}
+function voiceStart() {
+  if (!SpeechRec || !VO) return;
+  try {
+    const r = new SpeechRec(); VO.rec = r; VO.err = ''; VO.stopping = false; VO.interim = '';
+    r.lang = 'he-IL'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+    r.onresult = e => {
+      let it = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) { const res = e.results[i], tx = res[0] ? res[0].transcript : ''; if (res.isFinal) VO.base = (VO.base ? VO.base + ' ' : '') + tx.trim(); else it += tx; }
+      VO.interim = it; const ta = $('#vtxt'); if (ta) ta.value = (VO.base || '') + (it ? ' ' + it : '');
+    };
+    r.onerror = e => { if (e.error === 'no-speech' || e.error === 'aborted') return; VO.err = e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'אין הרשאה למיקרופון. אשרו בהגדרות הדפדפן, או הקלידו בתיבה.' : e.error === 'network' ? 'אין חיבור לאינטרנט להבנת הדיבור. הקלידו בתיבה או נסו שוב.' : 'ההקלטה נעצרה (' + e.error + '). אפשר לנסות שוב או להקליד.'; VO.stopping = true; VO.listening = false; };
+    r.onend = () => {
+      if (!VO || VO.rec !== r) return;
+      if (VO.listening && !VO.stopping) { try { r.start(); } catch (e) { VO.listening = false; } return; }
+      VO.listening = false; if (VO.interim) { VO.base = (VO.base ? VO.base + ' ' : '') + VO.interim; VO.interim = ''; }
+      if ((VO.base || '').trim() && !VO.err) voiceParse(); else drawVoice();
+    };
+    VO.listening = true; r.start();
+  } catch (e) { VO.listening = false; VO.err = 'לא הצלחתי להפעיל את המיקרופון. הקלידו בתיבה.'; }
+}
+function openVoice() {
+  VO = { base: '', interim: '', items: null, who: me(), dayOff: 0, listening: false, stopping: false, rec: null, err: '' };
+  openSheet('<div id="voicebody"></div>', { full: true }); drawVoice();
+  if (SpeechRec) { voiceStart(); drawVoice(); }
+}
+function voiceParse() {
+  if (!VO) return; const txt = $('#vtxt'); if (txt && !VO.listening) VO.base = txt.value;
+  const r = parseSpeech(VO.base); VO.items = r.items; VO.dayOff = r.dayOff; VO.err = r.items.length ? '' : 'לא זיהיתי סכומים. נסו: "מכולת 600, דלק 300".'; drawVoice();
+}
+const voiceTotal = () => sum((VO.items || []).map(x => +x.amt || 0));
+function drawVoice() {
+  const b = $('#voicebody'); if (!b || !VO) return;
+  const sc = b.parentElement.scrollTop, n = names(), date = addD(today(), VO.dayOff || 0);
+  const items = VO.items, any = items && items.some(x => x.amt > 0);
+  b.innerHTML = `<h2>רישום קולי<button class="x" data-act="closesheet" aria-label="סגירה">×</button></h2>
+  <p class="mini">אמרו ברצף, למשל: <b>"מכולת שכונה 600, אוכל מוכן 150, דלק 300, טיפוח 500"</b>. מה שנשמע כמו קטגוריה ישובץ לבד, והמילים נשמרות כהערה. תמיד רואים ובודקים לפני שמירה.</p>
+  ${SpeechRec ? `<button class="btn ${VO.listening ? 'danger' : 'coin'} block" data-act="voicemic" style="min-height:64px;font-size:18px">${VO.listening ? '⏹ סיימתי לדבר' : '🎤 התחלת הקלטה'}</button>${VO.listening ? '<p class="mini" style="text-align:center;margin-top:6px">🔴 מקשיב... דברו בקצב רגיל</p>' : ''}` : '<div class="banner" style="margin:0 0 8px"><span>⌨️</span><span>הדפדפן הזה לא מקליט מתוך האפליקציה. לחצו בתוך התיבה למטה ואז על המיקרופון של המקלדת, והכתיבו.</span></div>'}
+  ${VO.err ? `<p class="mini mt" style="color:var(--bad)">${esc(VO.err)}</p>` : ''}
+  <div class="field mt"><label for="vtxt">מה שנשמע (אפשר לתקן)</label><textarea id="vtxt" rows="3" data-vi="text" placeholder="מכולת 600, דלק 300...">${esc(VO.base + (VO.interim ? ' ' + VO.interim : ''))}</textarea></div>
+  <div class="lbl">מי הוציא</div>
+  <div class="seg"><button aria-pressed="${VO.who === 0}" data-act="voicewho" data-v="0">${esc(n[0])}</button><button aria-pressed="${VO.who === 1}" data-act="voicewho" data-v="1">${esc(n[1])}</button><button aria-pressed="${VO.who === 2}" data-act="voicewho" data-v="2">שנינו</button></div>
+  ${VO.dayOff ? `<p class="mini mt">התאריך: ${esc(fmtDay(date))}</p>` : ''}
+  ${items ? `<h2 style="font-size:16px;margin:16px 0 2px">${items.length ? `כך הבנתי (${items.length}), בדקו ותקנו` : 'לא נמצא כלום'}</h2>${items.map((it, i) => `<div class="card" style="padding:10px;margin-top:8px;${it.known ? '' : 'border-inline-start:5px solid var(--coin)'}"><div class="row2"><select data-vi="cat" data-i="${i}" style="flex:1;min-width:0" aria-label="קטגוריה">${CASH_CATS.map(c => `<option value="${c.id}" ${c.id === it.cat ? 'selected' : ''}>${c.e} ${esc(c.n)}</option>`).join('')}</select><input type="number" inputmode="decimal" min="0" value="${esc(it.amt)}" data-vi="amt" data-i="${i}" style="width:92px;flex:none" aria-label="סכום"><button class="btn ghost sm" data-act="voicedel" data-i="${i}" style="flex:none" aria-label="הסרה">×</button></div><input value="${esc(it.note)}" data-vi="note" data-i="${i}" maxlength="60" placeholder="הערה" style="margin-top:6px;width:100%" aria-label="הערה">${it.known ? '' : '<p class="mini" style="margin-top:4px">לא זיהיתי קטגוריה, בחרו אחת. בפעם הבאה אזכור.</p>'}</div>`).join('')}` : ''}
+  <div class="saveBar"><div class="row2">${items ? '' : ''}<button class="btn ghost" data-act="voiceparse" style="flex:none;padding:0 14px">${items ? 'פענוח מחדש' : 'פענוח'}</button><button class="btn coin block" data-act="voicesave" ${any ? '' : 'disabled'}>${any ? `שמירה · <span id="vtotal">${moneyT(voiceTotal())}</span>` : 'הכל ייכנס אחרי הפענוח'}</button></div></div>`;
+  b.parentElement.scrollTop = sc;
+}
+function voiceSave() {
+  if (!VO || !VO.items) return;
+  const date = addD(today(), VO.dayOff || 0), ids = [];
+  for (const it of VO.items) { if (!(+it.amt > 0) || !it.cat) continue; const r = saveTx({ amt: String(it.amt), cat: it.cat, who: VO.who, date, note: (it.note || '').trim(), why: '' }); if (r) ids.push(r.t.id); }
+  voiceStop(true); closeSheet(); render();
+  toast(`נרשמו ${ids.length} הוצאות במזומן`, () => { for (const id of ids) { const i = S.tx.findIndex(x => x.id === id); if (i >= 0) S.tx[i] = { ...S.tx[i], deleted: true, updatedAt: nowISO() }; } save(); render(); });
+}
+const ACT_VOICE = {
+  voice: () => openVoice(),
+  voicemic: () => { if (!VO) return; if (VO.listening) { voiceStop(false); drawVoice(); } else { VO.items = null; VO.err = ''; voiceStart(); drawVoice(); } },
+  voiceparse: () => voiceParse(),
+  voicewho: el => { VO.who = +el.dataset.v; const t = $('#vtxt'); if (t && !VO.listening) VO.base = t.value; drawVoice(); },
+  voicedel: el => { VO.items.splice(+el.dataset.i, 1); drawVoice(); },
+  voicesave: () => voiceSave()
+};
+document.addEventListener('input', e => {
+  const el = e.target, k = el.dataset && el.dataset.vi; if (!k || !VO) return;
+  if (k === 'text') { VO.base = el.value; VO.interim = ''; return; }
+  const it = VO.items && VO.items[+el.dataset.i]; if (!it) return;
+  if (k === 'amt') { it.amt = parseFloat(el.value) || 0; const t = $('#vtotal'); if (t) t.textContent = moneyT(voiceTotal()); } else if (k === 'note') it.note = el.value;
+});
+document.addEventListener('change', e => {
+  const el = e.target, k = el.dataset && el.dataset.vi; if (k !== 'cat' || !VO || !VO.items) return;
+  const it = VO.items[+el.dataset.i]; if (!it) return;
+  it.cat = el.value; it.known = true;
+  if (it.phrase) { const key = voiceNorm(it.phrase); if (key.length >= 2) { S.rules[key] = it.cat; save(); } }
+  drawVoice();
+});
+{ const _closeSheet0 = closeSheet; closeSheet = function (silent) { if (VO && (VO.listening || VO.rec)) voiceStop(true); return _closeSheet0(silent); }; }
+
 /* ---------- onboarding: names and whose phone, nothing else ---------- */
 let OB = null;
 function startOnboarding() { OB = { n0: 'חמזה', n1: 'רורו', me: 0 }; drawOnb(); }
@@ -1311,6 +1477,7 @@ function finishOnboarding() {
 /* ================= event wiring ================= */
 const ACT = {
   ...(typeof ACT_PRE === 'object' ? ACT_PRE : {}),
+  ...(typeof ACT_VOICE === 'object' ? ACT_VOICE : {}),
   pinwipe: (...a) => ACT_LATE.pinwipe(...a), pincancel: (...a) => ACT_LATE.pincancel(...a),
   add: () => { const d = newDraft(); d.who = me(); D = d; openSheet('<div id="addbody"></div>', { full: true }); drawAdd(); }, closesheet: () => closeSheet(),
   key: el => { const k = el.dataset.k; let a = D.amt; if (k === '⌫') a = a.slice(0, -1); else if (k === '.') { if (!a.includes('.')) a = (a || '0') + '.'; } else { if (a === '0') a = ''; if (a.replace('.', '').length < 8 && !/\.\d\d$/.test(a)) a += k; } D.amt = a; drawAdd(); buzz(); if (a.length === 1 && !D.cat) { const el = $('.cats'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } },
